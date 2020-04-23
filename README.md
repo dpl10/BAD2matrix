@@ -16,6 +16,7 @@ merging and translating FASTA alignments into TNT, FastTree, and RAxML/IQ-Tree w
 | -n <i>root–name</i> | Specify the root–name for output files. | yes |
 | -o <i>list,of,terminals</i> | Specify a comma delimited list of terminals to use for rooting trees. If not specified, the first (alphabetically) is used. | no |
 | -r | Specify the use of the original RAxML ‘.part’ file format (by default, the RAxML-NG/IQ-Tree format is used). | no |
+
 <i>Italicized text following option flags should be specified by the user.</i>
 
 ### citation
