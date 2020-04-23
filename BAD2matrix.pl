@@ -75,7 +75,7 @@ if(length($d)){
 ############################### START
 if(($#infile != -1) && length($n)){
 	my @files = ('tnt', 'cna', 'phy', 'par');
-	my $s = "find $d/ -type f | xargs grep -h '>' | tr ' ' '_' | tr '/' '_' | tr '\\\\' '_' | tr '-' '_' ";
+	my $s = "find $d/ -type f | xargs grep -h '^>' | tr ' ' '_' | tr '/' '_' | tr '\\\\' '_' | tr '-' '_' ";
 	if($f == 0){
 		$s .= "| perl -F'#' -lane '{print(\$F[0])}'"
 	}
@@ -103,8 +103,8 @@ if(($#infile != -1) && length($n)){
 	}
 	my @terminals = ();
 	for(my $x = $#infile; $x >= 0; $x--){ ### not done as a subshell because file number restrictions: my $p = qx`find $i/ -type f | xargs grep -c -h '>' | awk '{if(\$1>3){print $#species+1-\$1}}' | sort -n | head -n \$(find $d/ -type f | xargs grep -c -h '>' | awk 'BEGIN{x=0}{if(\$1>3){x++}}END{print int(x*$m)}') | tail -1`; $p = $#species+1-$p;
-		if($infile[$x] !~ m/^\.+$/){
-			my $t = qx`grep -c '>' $d/$infile[$x]`;
+		if(exclude($infile[$x]) == 0){
+			my $t = qx`grep -c '^>' $d/$infile[$x]`;
 			$t =~ tr/0123456789//cd;
 			if($t > 3){
 				push(@terminals, $t);
@@ -130,7 +130,7 @@ if(($#infile != -1) && length($n)){
 	my $ncharFAS = 0;
 	my $ncharPHY = 0;
 	for(my $x = $#infile; $x >= 0; $x--){ ############################### READ INFILE(S) PARSE AND WRITE TO TEMPORARY FILES
-		if(($infile[$x] =~ m/^\.{1,2}$/) || ($infile[$x] =~ m/^\.DS_Store$/)){
+		if(exclude($infile[$x]) == 1){
 			next;
 		}
 		my $aa = 0;
@@ -576,15 +576,15 @@ if(($#infile != -1) && length($n)){
 		$buffers{'tnt'} .= "\nindel characters coded using the \"simple gap coding\" method of SIMMONS AND OCHOTERENA. 2000. Gaps as characters in sequence-based phylogenetic analysis. Systematic Biology 49: 369-381. DOI 10.1080/10635159950173889";
 	}
 	if($ax =~ m/^(2|3|4|5|6|8|10|12|15|18)$/){
-		$buffers{'tnt'} .= "\namino acid states reduced to $ax following Murphy, Wallqvist, and Levy. 2000. Simplified amino acid alphabets for protein fold recognition and implications for folding. Protein Engineering 13: 149–52. DOI 10.1093/protein/13.3.149";
+		$buffers{'tnt'} .= "\namino acid states reduced to $ax following MURPHY, WALLQVIST, AND LEVY. 2000. Simplified amino acid alphabets for protein fold recognition and implications for folding. Protein Engineering 13: 149–52. DOI 10.1093/protein/13.3.149";
 	} elsif($ax eq '6dso'){
-		$buffers{'tnt'} .= "\namino acid states reduced to 6 following Dayhoff, Schwartz, and Orcutt. 1978. A model of evolutionary change in proteins. In Atlas of Protein Sequence and Structure, Dayhoff ed. pp. 345–352";
+		$buffers{'tnt'} .= "\namino acid states reduced to 6 following DAYHOFF, SCHWARTZ, AND ORCUTT. 1978. A model of evolutionary change in proteins. In Atlas of Protein Sequence and Structure, Dayhoff ed. pp. 345–352";
 	} elsif($ax eq '6kgb'){
-		$buffers{'tnt'} .= "\namino acid states reduced to 6 following Kosiol, Goldman, and Buttimore. 2004. A new criterion and method for amino acid classification. Journal of Theoretical Biology 228:97–106. DOI 10.1016/j.jtbi.2003.12.010";
+		$buffers{'tnt'} .= "\namino acid states reduced to 6 following KOSIOL, GOLDMAN, AND BUTTIMORE. 2004. A new criterion and method for amino acid classification. Journal of Theoretical Biology 228:97–106. DOI 10.1016/j.jtbi.2003.12.010";
 	} elsif($ax eq '6sr'){
-		$buffers{'tnt'} .= "\namino acid states reduced to 6 following Susko and Roger. 2007. On reduced amino acid alphabets for phylogenetic inference. Molecular Biology and Evolution 24: 2139–2150. DOI 10.1093/molbev/msm144";
+		$buffers{'tnt'} .= "\namino acid states reduced to 6 following SUSKO AND ROGER. 2007. On reduced amino acid alphabets for phylogenetic inference. Molecular Biology and Evolution 24: 2139–2150. DOI 10.1093/molbev/msm144";
 	} elsif($ax eq '11'){
-		$buffers{'tnt'} .= "\namino acid states reduced to 11 following Buchfink, Xie, and Huson. 2015. Fast and sensitive protein alignment using DIAMOND. Nature Methods 12: 59–60. DOI 10.1038/nmeth.3176";
+		$buffers{'tnt'} .= "\namino acid states reduced to 11 following BUCHFINK, XIE, AND HUSON. 2015. Fast and sensitive protein alignment using DIAMOND. Nature Methods 12: 59–60. DOI 10.1038/nmeth.3176";
 	}
 	$buffers{'tnt'} .= "'\n";
 	$buffers{'tnt'} .= $ncharTNT . ' ' . ($#species+1) . "\n";
@@ -685,6 +685,19 @@ sub cleanName {
 	$x =~ tr/[A-z][0-9]\_\.//cd;
 	return($x);
 }
+sub exclude {
+	my $o = 0;
+	if($_[0] =~ m/^\.{1,2}$/){
+		$o = 1;
+	} elsif($_[0] =~ m/^\.DS_Store$/){
+		$o = 1;
+	} elsif($_[0] =~ m/^\._/){
+		$o = 1;
+	} elsif($_[0] =~ m/\.tnt$/){
+		$o = 1;
+	}
+	return($o);
+}
 sub insert {
 	my $matrix = $_[0];
 	my $sequence = uc($_[1]);
@@ -742,6 +755,3 @@ sub fnv32a {
 	return(sprintf("0x%X", $hash));
 }
 exit(0);
-
-# raxmlHPC -f c -q A_min.part -m MULTIGAMMA -p 1 -n x -s A_min.phy -K GTR
-# raxml-ng --check --model A_min.part --msa A_min.phy
