@@ -36,6 +36,7 @@ if in_dir:
 
 if len(infiles) > 1 and len(root_name) > 1:
 	
+
 	for file in infiles:
 
 		#
@@ -44,6 +45,7 @@ if len(infiles) > 1 and len(root_name) > 1:
 		if re.search(r'\.fas?t?a?$', file):
 
 			with open(file, 'r') as fhandle:
+				thname_map = {}
 
 				for line in fhandle:
 
@@ -53,12 +55,21 @@ if len(infiles) > 1 and len(root_name) > 1:
 						name = raw_name
 						if not full_fasta_names:
 							name = re.split(r'#+', name)[0]
-						name = re.sub(r'[\s\/\-\\]', '_', name)
-						name = re.sub(r'[^\w\.]', '', name) # Should be use only ASCII chars for names?
-						term_names.append(name)
-						name_map[raw_name] = name
+						name = re.sub(r'[\s\/\-\\]+', '_', name)
+						name = re.sub(r'[^\w\._]', '', name)
+						thname_map[raw_name] = name
 
-	term_names = sorted(list(set(term_names))) # Why sort should be done in reverse order?
+				if len(thname_map.values()) < len(thname_map):
+
+					thnames = list(thname_map.keys())
+					dup_count = list(map(lambda x: thnames.count(x), thnames))
+					prob = [x for x,y in zip(thnames, dup_count) if y > 1]
+					err = '\n'.join(prob)
+					raise ValueError(f"Check the following sequence names in ´{file}´, there could be duplicates:\n{err}.\n")
+
+				name_map.update(thname_map)
+
+	term_names = sorted(list(set(name_map.values()))) # Why sort should be done in reverse order?
 	spp_data = {name: Term_data(name) for name in term_names}
 
 	for file in infiles:

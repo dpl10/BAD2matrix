@@ -2,7 +2,8 @@ import re
 
 def get_partition(filename: str, name_map: dict) -> dict:
 
-	partition = {name: "" for name in name_map.values()}
+	#partition = {name: "" for name in name_map.values()}
+	partition = {}
 
 	with open(filename, 'r') as fhandle:
 		char_lens = {}
@@ -15,7 +16,7 @@ def get_partition(filename: str, name_map: dict) -> dict:
 			if line.startswith('>'):
 
 				if th_term and th_seq:
-					char_lens[len(th_seq)]
+					char_lens[len(th_seq)] = 0
 
 					if len(char_lens.keys()) > 0:
 						raise ValueError(f"Sequences in {filename} have different lengths, probably they are not aligned.")
@@ -36,8 +37,6 @@ def get_partition(filename: str, name_map: dict) -> dict:
 				raise ValueError(f"Sequences in {filename} have different lengths, probably they are not aligned.")
 
 			partition[th_term] = th_seq
-
-	partition = {n: partition[n] for n in partition if len(partition[n]) > 0}
 
 	return partition
 
