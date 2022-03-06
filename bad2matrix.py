@@ -2,7 +2,7 @@ import sys
 import os
 import re
 import warnings
-from utils import Term_data, get_partition
+from utils import Term_data, Partition
 
 in_dir = ""
 root_name = ""
@@ -26,6 +26,11 @@ for iar,ar in enumerate(sys.argv):
 	if ar == '-f':
 		full_fasta_names = True
 
+	if ar == '-i':
+		code_indels = False
+
+print(root_name, in_dir)
+
 if in_dir:
 	for d, s, f in os.walk(in_dir):
 		for file in f:
@@ -34,14 +39,17 @@ if in_dir:
 	if len(infiles) == 0:
 		raise ValueError("Input directory (-d) does not contain any files!")
 
-if len(infiles) > 1 and len(root_name) > 1:
+if len(infiles) > 0 and len(root_name) > 0:
 	
 
 	for file in infiles:
 
-		#
+		########################################################################
 		# File naming convention of inputs should be stated in the instructions.
-		#
+		# Two classes of input matrices: molecular or morphological/gene dupli-
+		# cation events. User should mention which is which through the file
+		# extension.
+		######################################################################## 
 		if re.search(r'\.fas?t?a?$', file):
 
 			with open(file, 'r') as fhandle:
@@ -73,10 +81,14 @@ if len(infiles) > 1 and len(root_name) > 1:
 	spp_data = {name: Term_data(name) for name in term_names}
 
 	for file in infiles:
-		partition = get_partition(file, name_map)
+		partition = Partition(file, name_map)
+		print(partition.data)
 
 		if code_indels:
-			pass
+			#size = len(list(partition.values())[0])
+			#part_table = [size, 'molecular']
+			partition.indel_coder()
+			print(partition.data)
 
 		# Parse all data to each species file
 

@@ -1,113 +1,196 @@
 import re
 from functools import reduce
 
-def get_partition(filename: str, name_map: dict) -> dict:
+#dna_codes = 'ABCD  GH  K MN  RST VW Y'  #-> T
+#rna_codes = 'ABCD  GH  K MN  RS UVW Y'  #-> U
+#aa_codes =  'ABCDEFGHIJKLMNPQRST VWXYZ' #-> EFILPQ JZX
 
-	#partition = {name: "" for name in name_map.values()}
-	partition = {}
+class Partition:
 
-	with open(filename, 'r') as fhandle:
-		char_lens = {}
-		th_term = ''
-		th_seq = ''
+	def __init__(self, filename: str, name_map: dict):
 
-		for line in fhandle:
-			line = line.strip()
+		self.data = {}
 
-			if line.startswith('>'):
+		# Describes "subpartitions"
+		# Char length, Char type
+		# Char types: `nucleic`, `peptidic`, `indel`, `morphological`
+		self.metadata=[]
 
-				if th_term and th_seq:
-					char_lens[len(th_seq)] = 0
+		with open(filename, 'r') as fhandle:
+			char_lens = {}
+			th_term = ''
+			th_seq = ''
+			types = {}
 
-					if len(char_lens.keys()) > 0:
-						raise ValueError(f"Sequences in {filename} have different lengths, probably they are not aligned.")
+			for line in fhandle:
+				line = line.strip()
 
-					partition[th_term] = th_seq
-					th_term = ''
-					th_seq = ''
+				if line.startswith('>'):
 
-				th_term = name_map[line]
+					if th_term and th_seq:
+						char_lens[len(th_seq)] = 0
 
-			else:
-				th_seq += line
+						if len(char_lens.keys()) > 1:
+							raise ValueError(f"Sequences in {filename} have different lengths, probably they are not aligned.")
 
-		if th_term and th_seq:
-			char_lens[len(th_seq)]
+						th_seq = th_seq.upper()
+						thtype = self.seq_type(th_seq)
+						types[thtype] = 0
+						self.data[th_term] = th_seq
+						th_term = ''
+						th_seq = ''
 
-			if len(char_lens.keys()) > 0:
-				raise ValueError(f"Sequences in {filename} have different lengths, probably they are not aligned.")
+					th_term = name_map[line]
 
-			partition[th_term] = th_seq
+				else:
+					th_seq += line.upper()
 
-	return partition
+			if th_term and th_seq:
+				char_lens[len(th_seq)]
+
+				if len(char_lens.keys()) > 1:
+					raise ValueError(f"Sequences in {filename} have different lengths, probably they are not aligned.")
+
+				th_seq = th_seq.upper()
+				thtype = self.seq_type(th_seq)
+				types[thtype] = 0
+				self.data[th_term] = th_seq
+
+		types = list(set(types.keys()))
+		
+		if 'peptidic' in types:
+			self.metadata = [[list(char_lens.keys())[0], 'peptidic']]
+		
+		elif 'nucleic' in types:
+			self.metadata = [[list(char_lens.keys())[0], 'nucleic']]
+		
+		else:
+			raise ValueError('WTF')
 
 
-def code_indels(partition:dict) -> dict:
-	indel_map = {name:{} for name in partition}
+	def indel_coder(self):
+		indel_map = {name:{} for name in self.data}
 
-	# find indel morphology
-	for taxon in partition:
-		valid_init = 0
-		valid_end = 0
-		in_gap = False
-		thgap = [None, None]
-		thindels = {}
-		for ichar, char in enumerate(partition[taxon]):
-			if char != '-':
-				valid_init = ichar
-				break
-		for ichar, char in reversed(list(enumerate(partition[taxon]))):
-			if char != '-':
-				valid_end = ichar
-				break
-		for ichar in range(valid_init, valid_end+1):
-			if partition[taxon][ichar] == '-' and not in_gap:
-				thgap[0] = ichar
-			elif partition[taxon][ichar] != '-' and in_gap:
-				thgap[1] = ichar-1
-				thindels[tuple(thgap)] = 0
-				thgap = [None, None]
-		indel_map[taxon] = thindels
+		# find indel morphology
+		for taxon in self.data:
+			valid_init = 0
+			valid_end = 0
+			in_gap = False
+			thgap = [None, None]
+			thindels = {}
 
-	# count character frequency
-	indel_count = {}
-	for taxon in indel_map:
-		for indel in indel_map[taxon]:
-			if indel in indel_count:
-				indel_count[indel] += 1
-			else:
-				indel_count[indel] = 1
+			for ichar, char in enumerate(self.data[taxon]):
+			
+				if char != '-':
+					valid_init = ichar
+					break
+			
+			for ichar, char in reversed(list(enumerate(self.data[taxon]))):
+			
+				if char != '-':
+					valid_end = ichar
+					break
+			
+			for ichar in range(valid_init, valid_end+1):
+			
+				if self.data[taxon][ichar] == '-' and not in_gap:
+					thgap[0] = ichar
+					in_gap = True
+			
+				elif self.data[taxon][ichar] != '-' and in_gap:
+					thgap[1] = ichar
+					thindels[tuple(thgap)] = 0
+					thgap = [None, None]
+					in_gap = False
+			
+			indel_map[taxon] = thindels
+		
+		#print('\nindel_map', indel_map)
 
-	# find ambiguity dependency among indels
-	indel_set = sorted([i for i in indel_count if indel_count[i] > 1])
-	ambiguity_map = {x:[] for x in indel_set}
-	for indel in indel_set:
-		for indel_ in indel_set:
-			if indel != indel_:
-				if indel[0] <= indel_[0] and indel[1] >= indel_[1]:
-					ambiguity_map[indel].append(indel_)
+		# count character frequency
+		indel_count = {}
+		
+		for taxon in indel_map:
+		
+			for indel in indel_map[taxon]:
+		
+				if indel in indel_count:
+					indel_count[indel] += 1
+		
+				else:
+					indel_count[indel] = 1
+		
+		#print('\nindel_count', indel_count)
 
-	# remove non-informative
-	for indel in indel_count:
-		if indel_count[indel] == 1:
-			for taxon in indel_map:
-				indel_map[taxon].pop(indel)
+		# find ambiguity dependency among indels
+		indel_set = sorted([i for i in indel_count if indel_count[i] > 1])
+		ambiguity_map = {x:[] for x in indel_set}
+		
+		for indel in indel_set:
+		
+			for indel_ in indel_set:
+		
+				if indel != indel_:
+		
+					if indel[0] <= indel_[0] and indel[1] >= indel_[1]:
+						ambiguity_map[indel].append(indel_)
+		
+		#print('\nambiguity_map', ambiguity_map)
+
+		# remove non-informative
+		for indel in indel_count:
+		
+			if indel_count[indel] == 1:
+		
+				for taxon in indel_map:
+		
+					if indel in indel_map[taxon]:
+						indel_map[taxon].pop(indel)
+		
+		#print('\nindel_map', indel_map)
+
+		# code characters
+		for taxon in self.data:
+			thcodes = {x:None for x in indel_set}
+			ambiguous = []
+		
+			for indel in indel_set:
+		
+				if indel in indel_map[taxon]:
+					thcodes[indel] = '1'
+		
+					if len(ambiguity_map[indel]) > 0:
+						ambiguous.append(indel)
+		
+				else:
+					thcodes[indel] = '0'
+
+			for amb in ambiguous:
+				thcodes[amb] = '?'
+
+			#print('\nthcodes', thcodes)
+			self.data[taxon] += ''.join(list(thcodes.values()))
+
+		self.metadata.append([len(thcodes), 'indel'])
 	
-	# code characters
-	for taxon in partition:
-		thcodes = [None for x in indel_set]
-		ambiguous_idx = []
-		for idx, indel in enumerate(indel_set):
-			if indel in indel_map[taxon]:
-				thcodes.append('1')
-				if len(ambiguity_map[indel]) > 0:
-					ambiguous_idx.append(idx)
-			else:
-				thcodes.append('0')
-		thcodes = [x if not x in ambiguous_idx else '?' for i,x in enumerate(thcodes)]
-		partition[taxon].append(''.join(thcodes))
 
-	return partition
+	def seq_type(self, sequence):
+
+		seq_type = None
+		no_valid = re.compile(r'[^ABCDEFGHIJKLMNPQRSTUVWXYZ\-]')
+		prot = re.compile(r'[EFILPQJZX]')
+		robj_no_valid = no_valid.search(sequence)
+		
+		if robj_no_valid:
+			raise ValueError(f"Sequence contains a symbol not valid for molecular partition: `{robj_no_valid.group(0)}`.")
+		
+		elif prot.search(sequence):
+			seq_type = 'peptidic'
+		
+		else:
+			seq_type = 'nucleic'
+		
+		return seq_type
 
 
 class Term_data:
@@ -122,17 +205,9 @@ class Term_data:
 			fhandle.write("")
 
 	def insert(self, data, seqtype):
-		if seqtype == 'molecular':
-			data = re.sub(r'[ABCDEFGHIJKLMNOPQRSTUVWXYZ]', '' , data)
-			
-		elif seqtype == 'morpho':
-			#
-			# Implement morpho/indel coding
-			#
-			pass
 
-		with open(self.fasta_file, "wa") as fhandle:
-			fhandle.write("")
+		#with open(self.fasta_file, "wa") as fhandle:
+		#	fhandle.write("")
 		
 		pass
 
