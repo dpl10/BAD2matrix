@@ -198,16 +198,31 @@ class Term_data:
 	
 	def __init__(self, name: str):
 		self.name = name
-		self.fasta_file = "temporary_file_for_" + self.name + "_do_not_delete_or_you_will_die.fasta"
-		self.partition_table = [] # pos init, pos end, datatype
+		self.file = "temporary_file_for_" + self.name + "_do_not_delete_or_you_will_die.fasta"
+		self.partition_table = [] # position start, position end, datatype
+		self.size = 0
+
+	def feed(self, part: Partition):
+
 		
-		with open(self.fasta_file, "w") as fhandle:
-			fhandle.write("")
+		if self.name in part:
+			with open(self.file, 'a') as fh:
+				fh.write(part[self.name])
+			for subpart in part.metadata:
+				self.partition_table.append(
+					(self.size, self.size + subpart[0], subpart[1])
+				)
+				self.size += subpart[0]
 
-	def insert(self, data, seqtype):
+		else:
+			for subpart in part.metadata:
+				self.partition_table.append(
+					(None, None, subpart[1])
+				)
 
-		#with open(self.fasta_file, "wa") as fhandle:
-		#	fhandle.write("")
+
+			#with open(self.fasta_file, "wa") as fhandle:
+			#	fhandle.write("")
 		
 		pass
 

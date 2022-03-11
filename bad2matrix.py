@@ -91,6 +91,8 @@ if len(infiles) > 0 and len(root_name) > 0:
 			print(partition.data)
 
 		# Parse all data to each species file
+		for name in spp_data:
+			spp_data[name].feed(partition)
 
 
 	"""
