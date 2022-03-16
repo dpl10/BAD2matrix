@@ -2,7 +2,7 @@ import sys
 import os
 import re
 import warnings
-from utils import Term_data, Partition
+from utils import Term_data, Partition, clean_name
 
 in_dir = ""
 root_name = ""
@@ -11,6 +11,8 @@ infiles = []
 term_names = []
 name_map = {}
 code_indels = True
+outgroups = []
+aa_encoding = "20"
 
 for iar,ar in enumerate(sys.argv):
 
@@ -20,6 +22,10 @@ for iar,ar in enumerate(sys.argv):
 		else:
 			raise ValueError("Input directory (-d) could not be read!")
 
+	if ar == '-a':
+		if re.search(r'^(2|3|4|5|6|6dso|6kgb|6sr|8|10|11|12|15|18|20)$', sys.argv[iar+1]):
+			aa_encoding = 20
+
 	if ar == '-n':
 		root_name = sys.argv[iar+1]
 
@@ -28,6 +34,9 @@ for iar,ar in enumerate(sys.argv):
 
 	if ar == '-i':
 		code_indels = False
+
+	if ar == '-o':
+		outgroups = [clean_name(x) for x in sys.argv[iar+1].split(',')]
 
 print(root_name, in_dir)
 
@@ -50,7 +59,7 @@ if len(infiles) > 0 and len(root_name) > 0:
 		# cation events. User should mention which is which through the file
 		# extension.
 		######################################################################## 
-		if re.search(r'\.fas?t?a?$', file):
+		if re.search(r'\.(fas|fasta)$', file):
 
 			with open(file, 'r') as fhandle:
 				thname_map = {}
@@ -63,8 +72,7 @@ if len(infiles) > 0 and len(root_name) > 0:
 						name = raw_name
 						if not full_fasta_names:
 							name = re.split(r'#+', name)[0]
-						name = re.sub(r'[\s\/\-\\]+', '_', name)
-						name = re.sub(r'[^\w\._]', '', name)
+						name = clean_name(name)
 						thname_map[raw_name] = name
 
 				if len(thname_map.values()) < len(thname_map):

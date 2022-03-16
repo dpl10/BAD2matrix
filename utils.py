@@ -1,6 +1,11 @@
 import re
 from functools import reduce
 
+def clean_name(name):
+	name = re.sub(r'[\s\/\-\\]+', '_', name)
+	name = re.sub(r'[^\w\._]', '', name) # What happens with `#`?
+	return name
+
 #dna_codes = 'ABCD  GH  K MN  RST VW Y'  #-> T
 #rna_codes = 'ABCD  GH  K MN  RS UVW Y'  #-> U
 #aa_codes =  'ABCDEFGHIJKLMNPQRST VWXYZ' #-> EFILPQ JZX
@@ -12,7 +17,7 @@ class Partition:
 		self.data = {}
 
 		# Describes "subpartitions"
-		# Char length, Char type
+		# Char length, Char type, Informative count, Informative positions
 		# Char types: `nucleic`, `peptidic`, `indel`, `morphological`
 		self.metadata=[]
 
@@ -59,10 +64,10 @@ class Partition:
 		types = list(set(types.keys()))
 		
 		if 'peptidic' in types:
-			self.metadata = [[list(char_lens.keys())[0], 'peptidic']]
+			self.metadata = [len(self.data[0]), 'peptidic']
 		
 		elif 'nucleic' in types:
-			self.metadata = [[list(char_lens.keys())[0], 'nucleic']]
+			self.metadata = [len(self.data[0]), 'nucleic']
 		
 		else:
 			raise ValueError('WTF')
@@ -193,6 +198,32 @@ class Partition:
 		return seq_type
 
 
+	def informative(self):
+		acc = 0
+
+		for sub_idx, sub_data in enumerate(self.metadata):
+			states = {}
+			for idx in range(acc, (acc + sub_data[0])):
+				for seq in self.data:
+					if seq[idx] in states:
+						states[seq[idx]] += 1
+					else:
+						states[seq[idx]] = 1
+
+			min_steps = len(states)
+			max_steps = 0
+			sorted_states = sorted(states, lambda x : states[x])
+			for st in sorted_states[:-1]:
+				max_steps += states[st]
+			if max_steps - min_steps > 0:
+				self.metadata[sub_idx, 2] = 1
+			else:
+				self.metadata[sub_idx, 2] = 0
+			
+
+		acc += sub_data[0]
+
+
 class Term_data:
 	"""Simple class for aggregated DNA/AA data of a terminal"""
 	
@@ -203,7 +234,6 @@ class Term_data:
 		self.size = 0
 
 	def feed(self, part: Partition):
-
 		
 		if self.name in part:
 			with open(self.file, 'a') as fh:
