@@ -19,7 +19,7 @@ class Partition:
 		# Describes "subpartitions"
 		# Char length, Char type, Informative count, Informative positions
 		# Char types: `nucleic`, `peptidic`, `indel`, `morphological`
-		self.metadata=[]
+		self.metadata = {"size": [], "type": [], "informative_chars": []}
 
 		with open(filename, 'r') as fhandle:
 			char_lens = {}
@@ -62,12 +62,14 @@ class Partition:
 				self.data[th_term] = th_seq
 
 		types = list(set(types.keys()))
-		
+		self.metadata["size"].append(list(char_lens.keys())[0])
+		self.metadata["informative_chars"].append([])
+
 		if 'peptidic' in types:
-			self.metadata = [len(self.data[0]), 'peptidic']
+			self.metadata["type"].append("peptidic")
 		
 		elif 'nucleic' in types:
-			self.metadata = [len(self.data[0]), 'nucleic']
+			self.metadata["type"].append("nucleid")
 		
 		else:
 			raise ValueError('WTF')
@@ -176,8 +178,10 @@ class Partition:
 			#print('\nthcodes', thcodes)
 			self.data[taxon] += ''.join(list(thcodes.values()))
 
-		self.metadata.append([len(thcodes), 'indel'])
-	
+		self.metadata["size"].append(len(indel_set))
+		self.metadata["type"].append("indel")	
+		self.metadata["informative_chars"].append([])
+
 
 	def seq_type(self, sequence):
 
@@ -198,30 +202,32 @@ class Partition:
 		return seq_type
 
 
-	def informative(self):
+	def informative_stats(self):
 		acc = 0
 
-		for sub_idx, sub_data in enumerate(self.metadata):
+		for sub_idx, sub_size in enumerate(self.metadata["size"]):
 			states = {}
-			for idx in range(acc, (acc + sub_data[0])):
+			
+			for idx in range(acc, (acc + sub_size)):
+			
 				for seq in self.data:
+			
 					if seq[idx] in states:
 						states[seq[idx]] += 1
 					else:
 						states[seq[idx]] = 1
 
-			min_steps = len(states)
-			max_steps = 0
-			sorted_states = sorted(states, lambda x : states[x])
-			for st in sorted_states[:-1]:
-				max_steps += states[st]
-			if max_steps - min_steps > 0:
-				self.metadata[sub_idx, 2] = 1
-			else:
-				self.metadata[sub_idx, 2] = 0
-			
+				min_steps = len(states)
+				max_steps = 0
+				sorted_states = sorted(states, key = lambda x : states[x])
 
-		acc += sub_data[0]
+				for st in sorted_states[:-1]:
+					max_steps += states[st]
+				
+				if max_steps - min_steps > 0:
+					self.metadata["informative_chars"][sub_idx].append(idx)
+			
+		acc += sub_size
 
 
 class Term_data:
@@ -235,14 +241,14 @@ class Term_data:
 
 	def feed(self, part: Partition):
 		
-		if self.name in part:
+		if self.name in part.data:
 			with open(self.file, 'a') as fh:
-				fh.write(part[self.name])
-			for subpart in part.metadata:
+				fh.write(part.data[self.name])
+			for idx, subpart in enumerate(part.metadata["size"]):
 				self.partition_table.append(
-					(self.size, self.size + subpart[0], subpart[1])
+					(self.size, self.size + subpart, part.metadata["type"][idx])
 				)
-				self.size += subpart[0]
+				self.size += subpart
 
 		else:
 			for subpart in part.metadata:
