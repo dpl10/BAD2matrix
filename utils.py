@@ -1,9 +1,75 @@
 import re
 from functools import reduce
+import warnings
 
-def clean_name(name):
-	name = re.sub(r'[\s\/\-\\]+', '_', name)
-	name = re.sub(r'[^\w\._]', '', name) # What happens with `#`?
+nucl_amb_codes = {
+	'R': ['A' , 'G'],
+	'Y': ['C' , 'T'],
+	'S': ['G' , 'C'],
+	'W': ['A' , 'T'],
+	'K': ['G' , 'T'],
+	'M': ['A' , 'C'],
+	'B': ['C' , 'G' , 'T'],
+	'D': ['A' , 'G' , 'T'],
+	'H': ['A' , 'C' , 'T'],
+	'V': ['A' , 'C' , 'G'],
+	'N': ['A' , 'C' , 'G' , 'T']
+}
+
+prot_amb_codes = {
+	'B': ['D', 'N'], 
+	'J': ['I', 'L'], 
+	'X': ['A', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'K', 'L', 'M', 'N', 'P', 
+		  'Q', 'R', 'S', 'T', 'V', 'W', 'Y'],
+	'Z': ['E', 'Q']
+}
+
+def get_name_map(infiles: list, full_fasta_names: bool) -> dict:
+
+	name_map = {}
+	
+	for file in infiles:
+
+		########################################################################
+		# File naming convention of inputs should be stated in the instructions.
+		# Two classes of input matrices: molecular or morphological/gene dupli-
+		# cation events. User should mention which is which through the file
+		# extension.
+		######################################################################## 
+		if re.search(r'\.(fas|fasta)$', file):
+
+			with open(file, 'r') as fhandle:
+				thname_map = {}
+
+				for line in fhandle:
+
+					if line.startswith(">"):
+						# All cleaning procedures of terminal names should be done here.
+						raw_name = line.strip()
+						name = raw_name
+						if not full_fasta_names:
+							name = re.split(r'#+', name)[0]
+						name = clean_name(name)
+						thname_map[raw_name] = name
+
+				if len(set(thname_map.values())) < len(thname_map):
+
+					thnames = list(thname_map.keys())
+					dup_count = list(map(lambda x: thnames.count(x), thnames))
+					prob = [x for x,y in zip(thnames, dup_count) if y > 1]
+					err = '\n'.join(prob)
+					raise ValueError(f"Check the following sequence names in ´{file}´, there could be duplicates:\n{err}.\n")
+
+				name_map.update(thname_map)
+
+		else:
+			warnings.warn(f"File `{file}` skipped.")
+
+	return name_map
+
+def clean_name(name:str) -> str:
+	name = re.sub(r'[\s\/\-\\#]+', '_', name) # Verify sharp replacement
+	name = re.sub(r'[^\w\._]', '', name)
 	return name
 
 #dna_codes = 'ABCD  GH  K MN  RST VW Y'  #-> T
@@ -20,6 +86,7 @@ class Partition:
 		# Char length, Char type, Informative count, Informative positions
 		# Char types: `nucleic`, `peptidic`, `indel`, `morphological`
 		self.metadata = {"size": [], "type": [], "informative_chars": []}
+		#==> Include name in metadata <==
 
 		with open(filename, 'r') as fhandle:
 			char_lens = {}
@@ -204,31 +271,36 @@ class Partition:
 
 	def informative_stats(self):
 		acc = 0
-
+		#print(f'{self.metadata["size"]=}')
 		for sub_idx, sub_size in enumerate(self.metadata["size"]):
-			states = {}
-			
+			print(f'{sub_idx=}, {sub_size=}')
 			for idx in range(acc, (acc + sub_size)):
-			
-				for seq in self.data:
-			
-					if seq[idx] in states:
-						states[seq[idx]] += 1
-					else:
-						states[seq[idx]] = 1
-
-				min_steps = len(states)
-				max_steps = 0
-				sorted_states = sorted(states, key = lambda x : states[x])
-
-				for st in sorted_states[:-1]:
-					max_steps += states[st]
+				states = {}
 				
-				if max_steps - min_steps > 0:
-					self.metadata["informative_chars"][sub_idx].append(idx)
-			
-		acc += sub_size
-
+				for term in self.data:
+					seq = self.data[term]
+					if not seq[idx] in ['-', '?']:
+						if seq[idx] in states:
+							states[seq[idx]] += 1
+						else:
+							states[seq[idx]] = 1
+				print(f"{idx=}, {states=}")
+				if len(states) > 1:
+					min_steps = len(states) - 1
+					max_steps = 0
+					sorted_states = sorted(states, key = lambda x : states[x])
+					for st in sorted_states[:-1]:
+						max_steps += states[st]
+					print(f"{min_steps=}, {max_steps=}, {sorted_states=}")
+					
+					if max_steps > min_steps:
+						self.metadata["informative_chars"][sub_idx].append(idx-acc)
+			#print(f"{sub_idx=}")
+			#print(f"{self.metadata['informative_chars'][sub_idx]=}")
+			not_inf = [x for x in range(sub_size) if not x in self.metadata['informative_chars'][sub_idx]]
+			#print(f"{not_inf=}\n")
+			acc += sub_size
+		
 
 class Term_data:
 	"""Simple class for aggregated DNA/AA data of a terminal"""
@@ -236,31 +308,66 @@ class Term_data:
 	def __init__(self, name: str):
 		self.name = name
 		self.file = "temporary_file_for_" + self.name + "_do_not_delete_or_you_will_die.fasta"
-		self.partition_table = [] # position start, position end, datatype
+		self.partition_table = [] # position size, datatype, informative_chars
 		self.size = 0
 
 	def feed(self, part: Partition):
 		
+		present = False
+		
 		if self.name in part.data:
+			present = True
 			with open(self.file, 'a') as fh:
 				fh.write(part.data[self.name])
-			for idx, subpart in enumerate(part.metadata["size"]):
-				self.partition_table.append(
-					(self.size, self.size + subpart, part.metadata["type"][idx])
-				)
-				self.size += subpart
 
+		for idx in range(len(part.metadata["size"])):
+			self.partition_table.append(
+				(part.metadata["size"][idx], 
+				part.metadata["type"][idx],
+				part.metadata["informative_chars"][idx],
+				present
+				)
+			)
+
+
+def min_steps_char(count_dict, char_type):
+	""""
+	Fails if the character consists of two different ambiguity states and there
+	is at least one shared possible nucleotide shared in their encoding.
+	"""
+
+	min_steps = None
+	
+	if char_type in ['nucleic', 'peptidic']:
+		stand_states = None
+		projector = None
+
+		if char_type == 'nucleic':
+			stand_states = ['A', 'C', 'G', 'T']
+			projector = nucl_amb_codes
 		else:
-			for subpart in part.metadata:
-				self.partition_table.append(
-					(None, None, subpart[1])
-				)
+			stand_states = ['A', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'K', 'L', 
+				'M', 'N', 'P', 'Q', 'R', 'S', 'T', 'V', 'W', 'Y']
+			projector = prot_amb_codes
 
-
-			#with open(self.fasta_file, "wa") as fhandle:
-			#	fhandle.write("")
+		proj_states = {x for x in count_dict if x in stand_states}
+		ambs = {x for x in count_dict if not x in stand_states}
 		
-		pass
+		if len(ambs) > 0:
+			for amb in ambs:
+				thset = set(projector[amb])
+				inter = proj_states & thset
+				if len(inter) > 0:
+					break
+				else:
+					proj_states.update(next(iter(thset))) #==> change to for loop <==
+
+		min_steps = len(proj_states)
+
+	else:
+		min_steps = len(count_dict)
+
+	return min_steps
 
 
 

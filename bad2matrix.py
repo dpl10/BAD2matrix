@@ -2,7 +2,7 @@ import sys
 import os
 import re
 import warnings
-from utils import Term_data, Partition, clean_name
+from utils import Term_data, Partition, clean_name, get_name_map
 
 in_dir = ""
 root_name = ""
@@ -13,32 +13,56 @@ name_map = {}
 code_indels = True
 outgroups = []
 aa_encoding = "20"
+code_gene_content = True
+missing_percentile = 1
+part_file = 0
+tsv_file = None
+debbug = False
 
 for iar,ar in enumerate(sys.argv):
-
-	if ar == '-d':
-		if os.path.exists(sys.argv[iar+1]):
-			in_dir = sys.argv[iar+1]
-		else:
-			raise ValueError("Input directory (-d) could not be read!")
 
 	if ar == '-a':
 		if re.search(r'^(2|3|4|5|6|6dso|6kgb|6sr|8|10|11|12|15|18|20)$', sys.argv[iar+1]):
 			aa_encoding = 20
 
-	if ar == '-n':
-		root_name = sys.argv[iar+1]
+	elif ar == '-d':
+		if os.path.exists(sys.argv[iar+1]):
+			in_dir = sys.argv[iar+1]
+		else:
+			raise ValueError("Input directory (-d) could not be read!")
 
-	if ar == '-f':
+	elif ar == '-f':
 		full_fasta_names = True
 
-	if ar == '-i':
+	elif ar == '-g':
+		code_gene_content = False
+
+	elif ar == '-i':
 		code_indels = False
 
-	if ar == '-o':
+	elif ar == '-m':
+		val = int(re.sub(r'\D', '', sys.argv[iar+1])) 
+		if 0 < val <= 100:
+			missing_percentile = val
+
+	elif ar == '-n':
+		root_name = sys.argv[iar+1]
+
+	elif ar == '-o':
 		outgroups = [clean_name(x) for x in sys.argv[iar+1].split(',')]
 
-print(root_name, in_dir)
+	elif ar == '-r':
+		part_file = 1
+
+	elif ar == '-t':
+		if os.path.exists(sys.argv[iar+1]):
+			tsv_file = sys.argv[iar+1]
+		else:
+			raise ValueError("Input tsv file (-t) could not be read!")
+
+	elif ar == '-debbug':
+		debbug = True
+
 
 if in_dir:
 	for d, s, f in os.walk(in_dir):
@@ -50,41 +74,7 @@ if in_dir:
 
 if len(infiles) > 0 and len(root_name) > 0:
 	
-
-	for file in infiles:
-
-		########################################################################
-		# File naming convention of inputs should be stated in the instructions.
-		# Two classes of input matrices: molecular or morphological/gene dupli-
-		# cation events. User should mention which is which through the file
-		# extension.
-		######################################################################## 
-		if re.search(r'\.(fas|fasta)$', file):
-
-			with open(file, 'r') as fhandle:
-				thname_map = {}
-
-				for line in fhandle:
-
-					if line.startswith(">"):
-						# All cleaning procedures of terminal names should be done here.
-						raw_name = line.strip()
-						name = raw_name
-						if not full_fasta_names:
-							name = re.split(r'#+', name)[0]
-						name = clean_name(name)
-						thname_map[raw_name] = name
-
-				if len(thname_map.values()) < len(thname_map):
-
-					thnames = list(thname_map.keys())
-					dup_count = list(map(lambda x: thnames.count(x), thnames))
-					prob = [x for x,y in zip(thnames, dup_count) if y > 1]
-					err = '\n'.join(prob)
-					raise ValueError(f"Check the following sequence names in ´{file}´, there could be duplicates:\n{err}.\n")
-
-				name_map.update(thname_map)
-
+	name_map = get_name_map(infiles, full_fasta_names)
 	term_names = sorted(list(set(name_map.values()))) # Why sort should be done in reverse order?
 	spp_data = {name: Term_data(name) for name in term_names}
 
@@ -126,7 +116,7 @@ RAxML-NG format.
 
 USAGE:	BAD2matrix.pl [ -a 2|3|4|5|6|6dso|6kgb|6sr|8|10|11|12|15|18|20 ]
 	-d <directory> [ -f ] [ -g ] [ -i ] [ -m int ] -n <root-name>
-	[ -o speciesA,speciesB... ] [ -r ]
+	[ -o speciesA,speciesB... ] [ -r ] [ -t ]
 
 OPTIONS:
 -a	Number of amino acid states (default = 20). Reduction with option '6dso'
@@ -143,19 +133,29 @@ OPTIONS:
 	follow Murphy, Wallqvist, and Levy (2000. Simplified amino acid alphabets
 	for protein fold recognition and implications for folding. Protein
 	Engineering 13: 149–52. DOI 10.1093/protein/13.3.149).
+
 -d	Specifies a directory of aligned FASTA files. By default, names should
 	use the OrthologID naming convention ('>species#sequenceID').
 	Characters other than letters, numbers, periods, and underscores will be
 	deleted. Use -f for an alternate naming convention.
+
 -f	Use full FASTA names. Characters other than letters, numbers, periods,
 	and underscores will be deleted.
+
 -g	Do NOT code gene content.
+
 -i	Do NOT code indels.
+
 -m	Retain the upper x percentile of genes in the distribution of missing
 	sequences (default = 1; i.e. include all genes).
+
 -n	<root-name> for output files.
+
 -o	Outgroup(s) for rooting trees.
+
 -r	Output original RAxML formatted .part file.
+
+-t  Data matrix in tsv format, encapsulating ortholog duplication encoding.
 
 	""")
 
