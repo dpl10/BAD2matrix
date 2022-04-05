@@ -1,5 +1,6 @@
 import re
 from functools import reduce
+from itertools import combinations
 import warnings
 
 nucl_amb_codes = {
@@ -332,7 +333,7 @@ class Term_data:
 
 def min_steps_char(count_dict, char_type):
 	""""
-	Fails if the character consists of two different ambiguity states and there
+	Fails (?) if the character consists of two different ambiguity states and there
 	is at least one shared possible nucleotide shared in their encoding.
 	"""
 
@@ -353,14 +354,29 @@ def min_steps_char(count_dict, char_type):
 		proj_states = {x for x in count_dict if x in stand_states}
 		ambs = {x for x in count_dict if not x in stand_states}
 		
-		if len(ambs) > 0:
-			for amb in ambs:
-				thset = set(projector[amb])
-				inter = proj_states & thset
+		# Check if ambiguities are already represented in projected set
+		for amb in ambs:
+			thset = set(projector[amb])
+			inter = proj_states & thset
+			if len(inter) > 0:
+				ambs.remove(amb) #===>> change this <<===
+
+		# Check if two ambiguities have common aa/nucleotide
+		# ===>> What if there is only one amb left? <<==
+		while len(ambs) > 0:
+			for i,d in combinations(ambs, 2):
+				iset = set(projector[i])
+				dset = set(projector[d])
+				inter = iset & dset
 				if len(inter) > 0:
+					proj_states.update(next(iter(inter)))
+					ambs.remove(i) #===>> change this <<===
+					ambs.remove(d)
 					break
-				else:
-					proj_states.update(next(iter(thset))) #==> change to for loop <==
+
+			# Just add the non-empathetic ambiguity
+			for amb in ambs:
+				proj_states.update(next(iter(amb)))
 
 		min_steps = len(proj_states)
 
@@ -369,5 +385,34 @@ def min_steps_char(count_dict, char_type):
 
 	return min_steps
 
+
+def max_steps(count_dict, char_type):
+
+	max_steps = None
+	
+	if char_type in ['nucleic', 'peptidic']:
+		stand_states = None
+		projector = None
+
+		if char_type == 'nucleic':
+			stand_states = ['A', 'C', 'G', 'T']
+			projector = nucl_amb_codes
+		else:
+			stand_states = ['A', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'K', 'L', 
+				'M', 'N', 'P', 'Q', 'R', 'S', 'T', 'V', 'W', 'Y']
+			projector = prot_amb_codes
+
+		count_dict = {x: count_dict[x] for x in sorted(count_dict, reverse=True, key=lambda y: count_dict[y])}
+		new_count = {x: count_dict[x] for x in count_dict if x in count_dict}
+		ambs = {x: count_dict[x] for x in count_dict if not x in stand_states}
+
+		to_rm = []
+		for amb in ambs:
+			for sym in new_count:
+				if sym in projector[amb]:
+					new_count[sym] += ambs[amb]
+					to_rm.append(amb)
+					break
+		ambs = {x: ambs[x] for x in ambs if not x in to_rm}
 
 
