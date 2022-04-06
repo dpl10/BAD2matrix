@@ -355,28 +355,35 @@ def min_steps_char(count_dict, char_type):
 		ambs = {x for x in count_dict if not x in stand_states}
 		
 		# Check if ambiguities are already represented in projected set
+		to_rm = []
 		for amb in ambs:
 			thset = set(projector[amb])
 			inter = proj_states & thset
 			if len(inter) > 0:
-				ambs.remove(amb) #===>> change this <<===
+				to_rm.append(amb)
+		ambs = {x for x in ambs if not x in to_rm}
 
 		# Check if two ambiguities have common aa/nucleotide
 		# ===>> What if there is only one amb left? <<==
-		while len(ambs) > 0:
+		l0 = 0
+		l1 = 1
+		while len(ambs) > 1 and l0 != l1:
+			l0 = len(ambs)
+			to_rm = []
 			for i,d in combinations(ambs, 2):
 				iset = set(projector[i])
 				dset = set(projector[d])
 				inter = iset & dset
 				if len(inter) > 0:
 					proj_states.update(next(iter(inter)))
-					ambs.remove(i) #===>> change this <<===
-					ambs.remove(d)
+					to_rm += [i, d]
 					break
+			ambs = {x for x in ambs if not x in to_rm}
+			l1 = len(ambs)
 
-			# Just add the non-empathetic ambiguity
-			for amb in ambs:
-				proj_states.update(next(iter(amb)))
+		# Just add the non-empathetic ambiguities
+		for amb in ambs:
+			proj_states.update(next(iter(amb)))
 
 		min_steps = len(proj_states)
 
@@ -406,13 +413,17 @@ def max_steps(count_dict, char_type):
 		new_count = {x: count_dict[x] for x in count_dict if x in count_dict}
 		ambs = {x: count_dict[x] for x in count_dict if not x in stand_states}
 
-		to_rm = []
-		for amb in ambs:
-			for sym in new_count:
-				if sym in projector[amb]:
-					new_count[sym] += ambs[amb]
-					to_rm.append(amb)
-					break
-		ambs = {x: ambs[x] for x in ambs if not x in to_rm}
-
+		to_rm = [0]
+		while len(to_rm) > 0:
+			to_rm = []
+			break_ext = False
+			for amb in ambs:
+				for sym in new_count:
+					if sym in projector[amb]:
+						new_count[sym] += ambs[amb]
+						to_rm.append(amb)
+						break_ext = True
+						break
+				if break_ext: break	
+			ambs = {x: ambs[x] for x in ambs if not x in to_rm}
 
