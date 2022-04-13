@@ -95,7 +95,24 @@ def test_partition_indel():
 
 	assert part0.metadata['size'] == [70, 4]
 
-	assert part0.metadata['type'] == ['nucleid', 'indel']
+	assert part0.metadata['type'] == ['nucleic', 'indel']
+
+
+def test_min_steps_char():
+
+	assert utils.min_steps_char({"A": 1, "T": 2}, "nucleic") == 1
+	assert utils.min_steps_char({"A": 1, "R": 2}, "nucleic") == 0
+	assert utils.min_steps_char({"G": 1, "H": 2}, "nucleic") == 1
+	assert utils.min_steps_char({"A": 1, "H": 2}, "nucleic") == 0
+
+
+def test_max_steps_char():
+	assert utils.max_steps_char({'A': 3, 'T': 4, 'G':50}, "nucleic") == 7
+	assert utils.max_steps_char({'A': 3, 'T': 44, 'G':50}, "nucleic") == 47
+	assert utils.max_steps_char({'A': 3, 'T': 44, 'R':50}, "nucleic") == 53
+	assert utils.max_steps_char({'A': 3, 'T': 44, 'K':50}, "nucleic") == 3
+	assert utils.max_steps_char({'A': 53, 'T': 4, 'W':50}, "nucleic") == 4
+	assert utils.max_steps_char({'A': 3, 'T': 44, 'W':50}, "nucleic") == 3
 
 
 def test_informative_stats():
@@ -104,14 +121,9 @@ def test_informative_stats():
 	part1.informative_stats()
 	assert part0.metadata['informative_chars'][0] == [17, 32, 50, 51, 52]
 	assert part0.metadata['informative_chars'][1] == [1, 2, 3]
+	assert part1.metadata['informative_chars'][0] == [5, 53, 78]
+	assert part1.metadata['informative_chars'][1] == [0]
 
-
-def test_min_steps_char():
-
-	assert utils.min_steps_char({"A": 1, "T": 2}, "nucleic") == 2
-	assert utils.min_steps_char({"A": 1, "R": 2}, "nucleic") == 1
-	assert utils.min_steps_char({"G": 1, "H": 2}, "nucleic") == 2
-	assert utils.min_steps_char({"A": 1, "H": 2}, "nucleic") == 1
 
 
 def test_term_data():
@@ -127,21 +139,21 @@ def test_term_data():
 	sp4dat.feed(part1)
 
 	assert sp0dat.partition_table == [
-		(70, 'nucleid', [17, 32, 50, 51, 52], True), 
+		(70, 'nucleic', [17, 32, 50, 51, 52], True), 
 		(4, 'indel', [1, 2, 3], True),
-		(80, 'nucleid', [5, 53, 78], True),
+		(80, 'nucleic', [5, 53, 78], True),
 		(3, 'indel', [0], True)]
 
 	assert sp3dat.partition_table == [
-		(70, 'nucleid', [17, 32, 50, 51, 52], True), 
+		(70, 'nucleic', [17, 32, 50, 51, 52], True), 
 		(4, 'indel', [1, 2, 3], True),
-		(80, 'nucleid', [5, 53, 78], False),
+		(80, 'nucleic', [5, 53, 78], False),
 		(3, 'indel', [0], False)]
 
 	assert sp4dat.partition_table == [
-		(70, 'nucleid', [17, 32, 50, 51, 52], False), 
+		(70, 'nucleic', [17, 32, 50, 51, 52], False), 
 		(4, 'indel', [1, 2, 3], False),
-		(80, 'nucleid', [5, 53, 78], True),
+		(80, 'nucleic', [5, 53, 78], True),
 		(3, 'indel', [0], True)]
 
 sp0dat = utils.Term_data('sp0')

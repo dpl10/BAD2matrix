@@ -137,7 +137,7 @@ class Partition:
 			self.metadata["type"].append("peptidic")
 		
 		elif 'nucleic' in types:
-			self.metadata["type"].append("nucleid")
+			self.metadata["type"].append("nucleic")
 		
 		else:
 			raise ValueError('WTF')
@@ -279,27 +279,23 @@ class Partition:
 				states = {}
 				
 				for term in self.data:
-					seq = self.data[term]
-					if not seq[idx] in ['-', '?']:
-						if seq[idx] in states:
-							states[seq[idx]] += 1
+					pos = self.data[term][idx]
+					if not pos in ['-', '?']:
+						if pos in states:
+							states[pos] += 1
 						else:
-							states[seq[idx]] = 1
-				print(f"{idx=}, {states=}")
+							states[pos] = 1
+
+				print(f'{idx=}, {states=}, {self.metadata["type"][sub_idx]}')
 				if len(states) > 1:
-					min_steps = len(states) - 1
-					max_steps = 0
-					sorted_states = sorted(states, key = lambda x : states[x])
-					for st in sorted_states[:-1]:
-						max_steps += states[st]
-					print(f"{min_steps=}, {max_steps=}, {sorted_states=}")
+
+					min_steps = min_steps_char(states, self.metadata["type"][sub_idx])
+					max_steps = max_steps_char(states, self.metadata["type"][sub_idx])
+					print(f"{min_steps=}, {max_steps=}")
 					
 					if max_steps > min_steps:
 						self.metadata["informative_chars"][sub_idx].append(idx-acc)
-			#print(f"{sub_idx=}")
-			#print(f"{self.metadata['informative_chars'][sub_idx]=}")
-			not_inf = [x for x in range(sub_size) if not x in self.metadata['informative_chars'][sub_idx]]
-			#print(f"{not_inf=}\n")
+			
 			acc += sub_size
 		
 
@@ -332,11 +328,7 @@ class Term_data:
 
 
 def min_steps_char(count_dict, char_type):
-	""""
-	Fails (?) if the character consists of two different ambiguity states and there
-	is at least one shared possible nucleotide shared in their encoding.
-	"""
-
+	
 	min_steps = None
 	
 	if char_type in ['nucleic', 'peptidic']:
@@ -346,7 +338,7 @@ def min_steps_char(count_dict, char_type):
 		if char_type == 'nucleic':
 			stand_states = ['A', 'C', 'G', 'T']
 			projector = nucl_amb_codes
-		else:
+		elif char_type == 'peptidic':
 			stand_states = ['A', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'K', 'L', 
 				'M', 'N', 'P', 'Q', 'R', 'S', 'T', 'V', 'W', 'Y']
 			projector = prot_amb_codes
@@ -385,18 +377,18 @@ def min_steps_char(count_dict, char_type):
 		for amb in ambs:
 			proj_states.update(next(iter(amb)))
 
-		min_steps = len(proj_states)
+		min_steps = len(proj_states) - 1
 
 	else:
-		min_steps = len(count_dict)
+		min_steps = len(count_dict) - 1
 
 	return min_steps
 
 
-def max_steps(count_dict, char_type):
+def max_steps_char(count_dict, char_type):
 
 	max_steps = None
-	
+
 	if char_type in ['nucleic', 'peptidic']:
 		stand_states = None
 		projector = None
@@ -404,13 +396,13 @@ def max_steps(count_dict, char_type):
 		if char_type == 'nucleic':
 			stand_states = ['A', 'C', 'G', 'T']
 			projector = nucl_amb_codes
-		else:
+		elif char_type == 'peptidic':
 			stand_states = ['A', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'K', 'L', 
 				'M', 'N', 'P', 'Q', 'R', 'S', 'T', 'V', 'W', 'Y']
 			projector = prot_amb_codes
 
 		count_dict = {x: count_dict[x] for x in sorted(count_dict, reverse=True, key=lambda y: count_dict[y])}
-		new_count = {x: count_dict[x] for x in count_dict if x in count_dict}
+		new_count = {x: count_dict[x] for x in count_dict if x in stand_states} #stand_states?
 		ambs = {x: count_dict[x] for x in count_dict if not x in stand_states}
 
 		to_rm = [0]
@@ -426,4 +418,18 @@ def max_steps(count_dict, char_type):
 						break
 				if break_ext: break	
 			ambs = {x: ambs[x] for x in ambs if not x in to_rm}
+
+		if len(ambs) > 0:
+			new_count.update(ambs)
+			new_count = {x: new_count[x] for x in sorted(new_count, reverse=True, key=lambda y: new_count[y])}
+
+		max_steps = sum(list(new_count.values())[1:])
+
+	else:
+		count_dict = {x: count_dict[x] for x in sorted(count_dict, reverse=True, key=lambda y: count_dict[y])}
+
+		max_steps = sum(list(count_dict.values())[1:])
+
+	return max_steps
+
 
