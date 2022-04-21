@@ -1,9 +1,9 @@
 import os
 import utils
 
-infiles = ['alg_test_0.fasta', 'alg_test_1.fasta']
+infiles = ['alg_test_0.fasta', 'alg_test_1.fasta', 'alg_test_2.fasta']
 
-dummy_0 = '''
+dummy = ['''
 >sp0#sample0
 TATTCCTCTATTA---GTAATTGGGCTTCTACTT-TTCCAAGAGCAACTAAAAATATTCGGCGTATC---
 >sp1#sample0
@@ -12,9 +12,8 @@ TATTCCTCTATTA---GTAATTGGGCTTCTACTT-TTCCAAGAGCAACTAAAAATATTCGGCGTATC---
 --TTCCTCTATTAA-AGGAATTGGG--TCTACATTTTCCACGAGCAACTACCCATATTCGGCGTATCTG-
 >sp3#sample0
 ---TCCTCTATTAA-AGGAATTGGG--TCTACATTTTCCAAGAGCAACTACCCATATTC-GCGTATCTGG
+''',
 '''
-
-dummy_1 = '''
 >sp0#sample0
 CTTCTTTGCATTTATTACGATCGATTCTCCATGAATG------TAGTTTTAGTAAAGAAAATTTGCAGAAATCTCTGATT
 >sp1#sample1
@@ -23,13 +22,18 @@ CTTCGTTGCATTTATTACGATC-ATTCTCCATGAATG------TAGTTTTAGTAAAGAATATTTGCAGAAATCTCTGACT
 CTTCGCTGCAT--ATTACGATC-ATTCTCCATGAATG------TAGTTTTAGTTAAGAATATTTGCAGAAATCTCTGACT
 >sp4#sample0
 CTTCGCTGCAT--ATTACGATC-ATTCTCCATGAATGATAATCTAGTTTTAGTTAAGAATATTTGCAGAAATCTCTGATT
+''',
 '''
+>sp0#sample0
+TATTCCTCTATTA---GTAATTGGGCTTCTACTT-TTCCAAGAGGGCGGAAAAATATTCGGCGTATC---
+>sp5#sample0
+TATTCCTCTATTA---GTAATTGGGCTTCTACTT-TTCCAAGAGCGGGGAAAAATATTCGGCGTATC---
+'''
+]
 
-with open(infiles[0], 'w') as fh:
-	fh.write(dummy_0)
-
-with open(infiles[1], 'w') as fh:
-	fh.write(dummy_1)
+for inf, du in zip(infiles, dummy):
+	with open(inf, 'w') as fh:
+		fh.write(du)
 
 
 def test_dummy_files():
@@ -37,22 +41,26 @@ def test_dummy_files():
 	assert os.path.exists(infiles[1]) == True
 
 def test_name_map():
-	assert utils.get_name_map(infiles, True)  == {
+	mn, tc = utils.get_name_map(infiles, True)
+	assert mn == {
 		'>sp0#sample0': 'sp0_sample0',
 		'>sp1#sample0': 'sp1_sample0',
 		'>sp2#sample0': 'sp2_sample0',
 		'>sp3#sample0': 'sp3_sample0',
 		'>sp1#sample1': 'sp1_sample1',
-		'>sp4#sample0': 'sp4_sample0'
+		'>sp4#sample0': 'sp4_sample0',
+		'>sp5#sample0': 'sp5_sample0'
 	}
 
-	assert utils.get_name_map(infiles, False)  == {
+	mn, tc = utils.get_name_map(infiles, False)
+	assert mn == {
 		'>sp0#sample0': 'sp0',
 		'>sp1#sample0': 'sp1',
 		'>sp2#sample0': 'sp2',
 		'>sp3#sample0': 'sp3',
 		'>sp1#sample1': 'sp1',
-		'>sp4#sample0': 'sp4'
+		'>sp4#sample0': 'sp4',
+		'>sp5#sample0': 'sp5'
 	}
 
 def test_clean_name():
@@ -60,7 +68,7 @@ def test_clean_name():
 	assert utils.clean_name("sample.valid..name_0") == "sample.valid..name_0"
 
 
-name_map = utils.get_name_map(infiles, False)
+name_map, term_count = utils.get_name_map(infiles, False)
 
 def test_partition_instant():
 	part0 = utils.Partition(infiles[0], name_map)
@@ -161,8 +169,10 @@ sp3dat = utils.Term_data('sp3')
 sp4dat = utils.Term_data('sp4')
 
 def test_final_cleanup():
-	os.remove('alg_test_0.fasta')
-	os.remove('alg_test_1.fasta')
+
+	for fi in infiles:
+		os.remove(fi)
+
 	os.remove(sp0dat.file)
 	os.remove(sp3dat.file)
 	os.remove(sp4dat.file)

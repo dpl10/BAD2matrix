@@ -14,7 +14,7 @@ code_indels = True
 outgroups = []
 aa_encoding = "20"
 code_gene_content = True
-missing_percentile = 1
+keep_percentile = 1
 part_file = 0
 tsv_file = None
 debbug = False
@@ -43,7 +43,7 @@ for iar,ar in enumerate(sys.argv):
 	elif ar == '-m':
 		val = int(re.sub(r'\D', '', sys.argv[iar+1])) 
 		if 0 < val <= 100:
-			missing_percentile = val
+			keep_percentile = val / 100
 
 	elif ar == '-n':
 		root_name = sys.argv[iar+1]
@@ -74,23 +74,26 @@ if in_dir:
 
 if len(infiles) > 0 and len(root_name) > 0:
 	
-	name_map = get_name_map(infiles, full_fasta_names)
+	(name_map, acc_files) = get_name_map(infiles, full_fasta_names, keep_percentile)
 	term_names = sorted(list(set(name_map.values()))) # Why sort should be done in reverse order?
 	spp_data = {name: Term_data(name) for name in term_names}
 
 	for file in infiles:
-		partition = Partition(file, name_map)
-		print(partition.data)
 
-		if code_indels:
-			#size = len(list(partition.values())[0])
-			#part_table = [size, 'molecular']
-			partition.indel_coder()
+		if file in acc_files:
+
+			partition = Partition(file, name_map)
 			print(partition.data)
 
-		# Parse all data to each species file
-		for name in spp_data:
-			spp_data[name].feed(partition)
+			if code_indels:
+				#size = len(list(partition.values())[0])
+				#part_table = [size, 'molecular']
+				partition.indel_coder()
+				print(partition.data)
+
+			# Parse all data to each species file
+			for name in spp_data:
+				spp_data[name].feed(partition)
 
 
 	"""

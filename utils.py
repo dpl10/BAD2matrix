@@ -25,9 +25,10 @@ prot_amb_codes = {
 	'Z': ['E', 'Q']
 }
 
-def get_name_map(infiles: list, full_fasta_names: bool) -> dict:
+def get_name_map(infiles: list, full_fasta_names: bool, keep: float = 1.0) -> dict:
 
 	name_map = {}
+	file2terms = {}
 	
 	for file in infiles:
 
@@ -41,6 +42,7 @@ def get_name_map(infiles: list, full_fasta_names: bool) -> dict:
 
 			with open(file, 'r') as fhandle:
 				thname_map = {}
+				file2terms[file] = []
 
 				for line in fhandle:
 
@@ -52,6 +54,7 @@ def get_name_map(infiles: list, full_fasta_names: bool) -> dict:
 							name = re.split(r'#+', name)[0]
 						name = clean_name(name)
 						thname_map[raw_name] = name
+						file2terms[file].append(name)
 
 				if len(set(thname_map.values())) < len(thname_map):
 
@@ -66,7 +69,21 @@ def get_name_map(infiles: list, full_fasta_names: bool) -> dict:
 		else:
 			warnings.warn(f"File `{file}` skipped.")
 
-	return name_map
+	if keep < 1:
+		file2terms = {z: file2terms[z] for z in	sorted(file2terms, reverse=True, 
+			key=lambda x: len(file2terms[x]))}
+		new_size = int(keep * len(file2terms))
+		file2terms = {x: file2terms[x] for x in list(file2terms.keys())[:new_size + 1]}
+		name_set = {x for x in file2terms.values()}
+
+		to_rm = []
+		for raw_name in name_map:
+			if not name_map[raw_name] in name_set:
+				to_rm.append(name_map[raw_name])
+		name_map = {x:name_map[x] for x in name_map if not x in to_rm}
+		
+	return (name_map, list(file2terms.keys()))
+
 
 def clean_name(name:str) -> str:
 	name = re.sub(r'[\s\/\-\\#]+', '_', name) # Verify sharp replacement
@@ -86,7 +103,7 @@ class Partition:
 		# Describes "subpartitions"
 		# Char length, Char type, Informative count, Informative positions
 		# Char types: `nucleic`, `peptidic`, `indel`, `morphological`
-		self.metadata = {"size": [], "type": [], "informative_chars": []}
+		self.metadata = {"size": [], "type": [], "informative_chars": [], "origin": []}
 		#==> Include name in metadata <==
 
 		with open(filename, 'r') as fhandle:
