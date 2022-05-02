@@ -70,17 +70,26 @@ def get_name_map(infiles: list, full_fasta_names: bool, keep: float = 1.0) -> di
 			warnings.warn(f"File `{file}` skipped.")
 
 	if keep < 1:
+		name_set = set()
 		file2terms = {z: file2terms[z] for z in	sorted(file2terms, reverse=True, 
 			key=lambda x: len(file2terms[x]))}
 		new_size = int(keep * len(file2terms))
-		file2terms = {x: file2terms[x] for x in list(file2terms.keys())[:new_size + 1]}
-		name_set = {x for x in file2terms.values()}
+		#print("Original size:", len(file2terms), "==", len(name_map))
+		file2terms = {x: file2terms[x] for x in list(file2terms.keys())[:new_size]}
+		
+		for terms in file2terms.values():
+			seqs = [x for x,y in name_map.items() if y in terms]
+			name_set.update(seqs)
 
 		to_rm = []
+		#print(f"{name_map=}")
+		#print(f"{name_set=}")
 		for raw_name in name_map:
-			if not name_map[raw_name] in name_set:
-				to_rm.append(name_map[raw_name])
+			if not raw_name in name_set:
+				to_rm.append(raw_name)
+		#print(f"{to_rm=}")
 		name_map = {x:name_map[x] for x in name_map if not x in to_rm}
+		#print("Modified size:", len(file2terms), "==", len(name_map))
 		
 	return (name_map, list(file2terms.keys()))
 

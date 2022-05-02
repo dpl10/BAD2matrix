@@ -52,6 +52,8 @@ def test_name_map():
 		'>sp5#sample0': 'sp5_sample0'
 	}
 
+	assert tc == ['alg_test_0.fasta', 'alg_test_1.fasta', 'alg_test_2.fasta']
+
 	mn, tc = utils.get_name_map(infiles, False)
 	assert mn == {
 		'>sp0#sample0': 'sp0',
@@ -61,6 +63,25 @@ def test_name_map():
 		'>sp1#sample1': 'sp1',
 		'>sp4#sample0': 'sp4',
 		'>sp5#sample0': 'sp5'
+	}
+	assert tc == ['alg_test_0.fasta', 'alg_test_1.fasta', 'alg_test_2.fasta']
+
+	mn, tc = utils.get_name_map(infiles, False, 0.8)
+	assert mn == {
+		'>sp0#sample0': 'sp0',
+		'>sp1#sample0': 'sp1',
+		'>sp2#sample0': 'sp2',
+		'>sp3#sample0': 'sp3',
+		'>sp1#sample1': 'sp1',
+		'>sp4#sample0': 'sp4'
+	}
+
+	mn, tc = utils.get_name_map(infiles, True, 0.4)
+	assert mn == {
+		'>sp0#sample0': 'sp0_sample0',
+		'>sp1#sample0': 'sp1_sample0',
+		'>sp2#sample0': 'sp2_sample0',
+		'>sp3#sample0': 'sp3_sample0'
 	}
 
 def test_clean_name():
