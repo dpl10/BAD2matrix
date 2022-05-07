@@ -17,6 +17,8 @@ code_gene_content = True
 keep_percentile = 1
 part_file = 0
 tsv_file = None
+raxml_bffr = ""
+
 debbug = False
 
 for iar,ar in enumerate(sys.argv):
@@ -94,6 +96,15 @@ if len(infiles) > 0 and len(root_name) > 0:
 			# Parse all data to each species file
 			for name in spp_data:
 				spp_data[name].feed(partition)
+
+	# Write matrices to files
+
+	# Write headers
+	tot_size = sum([x[0] for x in spp_data[next(iter(spp_data))].partition_table])
+	raxml_header = f" {len(spp_data)} {tot_size} \n"
+
+	for sp in spp_data:
+		spp_data[sp].raxml()
 
 
 	"""

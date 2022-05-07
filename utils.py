@@ -331,7 +331,7 @@ class Term_data:
 	def __init__(self, name: str):
 		self.name = name
 		self.file = "temporary_file_for_" + self.name + "_do_not_delete_or_you_will_die.fasta"
-		self.partition_table = [] # position size, datatype, informative_chars
+		self.partition_table = [] # position size, datatype, informative_chars, presence
 		self.size = 0
 
 	def feed(self, part: Partition):
@@ -351,6 +351,36 @@ class Term_data:
 				present
 				)
 			)
+
+	def parse_raxml(self, outfile: str, dna_translator: function = None, aa_translator: function = None):
+		with open(self.file, 'r') as ihandle:
+			for data in ihandle:
+				init = 0
+				end = 0
+				for ipart in range(len(self.partition_table)):
+					init = end
+					end = init + self.partition_table[ipart][0]
+					with open(outfile, 'a') as ohandle:
+						if self.partition_table[ipart][3] and len(self.partition_table[ipart][2]) > 0:
+								# ===>> Conduct necessary translations of seq data
+								if self.partition_table[ipart][1] == 'nucleic':
+									if dna_translator:
+										ohandle.write(dna_translator(data[init:end]))
+									else:
+										ohandle.write(data[init:end])
+								elif self.partition_table[ipart][1] == 'peptidic':
+									if aa_translator:
+										ohandle.write(aa_translator(data[init:end]))
+									else:
+										ohandle.write(data[init:end])
+								elif self.partition_table[ipart][1] == 'indel':
+									ohandle.write(data[init:end])
+								elif self.partition_table[ipart][1] == 'morphological':
+									ohandle.write(data[init:end])
+
+						else:
+							# write missing data
+							ohandle.write("-" * self.partition_table['size'])
 
 
 def min_steps_char(count_dict, char_type):
