@@ -1,6 +1,7 @@
 import re
 from functools import reduce
 from itertools import combinations
+from typing import Callable
 import warnings
 
 nucl_amb_codes = {
@@ -112,7 +113,7 @@ class Partition:
 		# Describes "subpartitions"
 		# Char length, Char type, Informative count, Informative positions
 		# Char types: `nucleic`, `peptidic`, `indel`, `morphological`
-		self.metadata = {"size": [], "type": [], "informative_chars": [], "origin": []}
+		self.metadata = {"size": [], "type": [], "informative_chars": [], "origin": [filename]}
 		#==> Include name in metadata <==
 
 		with open(filename, 'r') as fhandle:
@@ -275,6 +276,7 @@ class Partition:
 		self.metadata["size"].append(len(indel_set))
 		self.metadata["type"].append("indel")	
 		self.metadata["informative_chars"].append([])
+		self.metadata["origin"].append( f'{self.metadata["origin"][0]}_indels' )
 
 
 	def seq_type(self, sequence):
@@ -300,7 +302,7 @@ class Partition:
 		acc = 0
 		#print(f'{self.metadata["size"]=}')
 		for sub_idx, sub_size in enumerate(self.metadata["size"]):
-			print(f'{sub_idx=}, {sub_size=}')
+			#print(f'{sub_idx=}, {sub_size=}')
 			for idx in range(acc, (acc + sub_size)):
 				states = {}
 				
@@ -312,17 +314,21 @@ class Partition:
 						else:
 							states[pos] = 1
 
-				print(f'{idx=}, {states=}, {self.metadata["type"][sub_idx]}')
+				#print(f'{idx=}, {states=}, {self.metadata["type"][sub_idx]}')
 				if len(states) > 1:
 
 					min_steps = min_steps_char(states, self.metadata["type"][sub_idx])
 					max_steps = max_steps_char(states, self.metadata["type"][sub_idx])
-					print(f"{min_steps=}, {max_steps=}")
+					#print(f"{min_steps=}, {max_steps=}")
 					
 					if max_steps > min_steps:
+						#print('idx-acc:', (idx-acc))
 						self.metadata["informative_chars"][sub_idx].append(idx-acc)
+						#print(self.metadata)
 			
 			acc += sub_size
+
+		return None
 		
 
 class Term_data:
@@ -331,56 +337,73 @@ class Term_data:
 	def __init__(self, name: str):
 		self.name = name
 		self.file = "temporary_file_for_" + self.name + "_do_not_delete_or_you_will_die.fasta"
-		self.partition_table = [] # position size, datatype, informative_chars, presence
+		self.metadata = {"size": [], "type": [], "informative_chars": [], "presence": [], "origin": []}
 		self.size = 0
 
 	def feed(self, part: Partition):
 		
-		present = False
-		
-		if self.name in part.data:
-			present = True
-			with open(self.file, 'a') as fh:
-				fh.write(part.data[self.name])
+		tot_inf = len(reduce(lambda x, y: x + y, part.metadata["informative_chars"]))
 
-		for idx in range(len(part.metadata["size"])):
-			self.partition_table.append(
-				(part.metadata["size"][idx], 
-				part.metadata["type"][idx],
-				part.metadata["informative_chars"][idx],
-				present
-				)
-			)
+		if tot_inf > 0:
 
-	def parse_raxml(self, outfile: str, dna_translator: function = None, aa_translator: function = None):
-		with open(self.file, 'r') as ihandle:
-			for data in ihandle:
-				init = 0
-				end = 0
-				for ipart in range(len(self.partition_table)):
-					init = end
-					end = init + self.partition_table[ipart][0]
-					with open(outfile, 'a') as ohandle:
-						if self.partition_table[ipart][3] and len(self.partition_table[ipart][2]) > 0:
-								# ===>> Conduct necessary translations of seq data
-								if self.partition_table[ipart][1] == 'nucleic':
-									if dna_translator:
-										ohandle.write(dna_translator(data[init:end]))
-									else:
-										ohandle.write(data[init:end])
-								elif self.partition_table[ipart][1] == 'peptidic':
-									if aa_translator:
-										ohandle.write(aa_translator(data[init:end]))
-									else:
-										ohandle.write(data[init:end])
-								elif self.partition_table[ipart][1] == 'indel':
-									ohandle.write(data[init:end])
-								elif self.partition_table[ipart][1] == 'morphological':
-									ohandle.write(data[init:end])
+			is_present = False
+			
+			if self.name in part.data:
+				is_present = True # All subpartitions tagged as present
+				
+				with open(self.file, 'a') as fh:
+					fh.write(part.data[self.name])
+
+			self.metadata["size"] += part.metadata["size"]
+			self.metadata["type"] += part.metadata["type"]
+			self.metadata["informative_chars"] += part.metadata["informative_chars"]
+			self.metadata["origin"] += part.metadata["origin"]		
+			self.metadata["presence"] += [is_present for x in part.metadata["size"]]
+
+		return None
+
+
+	def parse_raxml(self, 
+		outfile: str, 
+		dna_translator: Callable[[str], str] = lambda x: x, 
+		aa_translator:  Callable[[str], str] = lambda x: x,
+		name_space = 20):
+
+		with open(outfile, 'a') as ohandle:
+			pad = name_space - len(self.name)
+			init = self.name + " " * pad
+			ohandle.write(init)
+
+			with open(self.file, 'r') as ihandle:
+					
+				for data in ihandle:
+					init = 0
+					end = 0
+				
+					for ipart, isize in enumerate(self.metadata["size"]):
+						
+						if self.metadata["presence"][ipart]: 
+
+							init = end
+							end = init + isize
+
+							if self.metadata["type"][ipart] == 'nucleic':
+								ohandle.write(dna_translator(data[init:end]))
+
+							elif self.metadata["type"][ipart] == 'peptidic':
+								ohandle.write(aa_translator(data[init:end]))
+
+							elif self.metadata["type"][ipart] == 'indel':
+								ohandle.write(data[init:end])
+
+							elif self.metadata["type"][ipart] == 'morphological':
+								ohandle.write(data[init:end])
 
 						else:
 							# write missing data
-							ohandle.write("-" * self.partition_table['size'])
+							ohandle.write("-" * self.metadata["size"][ipart])
+
+			ohandle.write('\n')
 
 
 def min_steps_char(count_dict, char_type):

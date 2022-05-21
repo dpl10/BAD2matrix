@@ -1,6 +1,7 @@
 import sys
 import os
 import re
+from functools import reduce
 import warnings
 from utils import Term_data, Partition, clean_name, get_name_map
 
@@ -76,35 +77,58 @@ if in_dir:
 
 if len(infiles) > 0 and len(root_name) > 0:
 	
-	(name_map, acc_files) = get_name_map(infiles, full_fasta_names, keep_percentile)
+	raxml_main = root_name + '.phy'
+	raxml_part = root_name + '.part'
+	(name_map, act_files) = get_name_map(infiles, full_fasta_names, keep_percentile)
 	term_names = sorted(list(set(name_map.values()))) # Why sort should be done in reverse order?
+	longest = len(max(term_names, key = len))
 	spp_data = {name: Term_data(name) for name in term_names}
+	non_informative_partitions = []
+	final_spp_count = 0
 
-	for file in infiles:
+	for file in act_files:
 
-		if file in acc_files:
+		partition = Partition(file, name_map)
 
-			partition = Partition(file, name_map)
-			print(partition.data)
+		if code_indels:
+			partition.indel_coder()
 
-			if code_indels:
-				#size = len(list(partition.values())[0])
-				#part_table = [size, 'molecular']
-				partition.indel_coder()
-				print(partition.data)
+		partition.informative_stats()
+		tot_inf = len(reduce(lambda x, y: x + y, partition.metadata["informative_chars"]))
 
-			# Parse all data to each species file
+		if tot_inf == 0:
+			warnings.warn(f"Dataset in file {file} has no informative characters, therefore it will not be further processed and its data completelly excluded from the output files.")
+			non_informative_partitions.append(file)
+
+		else:
+			# Parse all data to each species file		
 			for name in spp_data:
 				spp_data[name].feed(partition)
+
+	# remove uninformative files and spp 
+	if not code_indels:
+		act_files = [x for x in act_files if not x in non_informative_partitions]
+	else:
+		to_rm = []
+		for file in act_files:
+			if file in non_informative_partitions and f"{file}_indels" in non_informative_partitions:
+				to_rm.append(file)
+		act_files = [x for x in act_files if not x in to_rm]
+	
+	spp_data = {sp: spp_data[sp] for sp in spp_data if 
+				len([x for x in spp_data[sp].metadata["presence"] if x]) > 0}
 
 	# Write matrices to files
 
 	# Write headers
-	tot_size = sum([x[0] for x in spp_data[next(iter(spp_data))].partition_table])
+	tot_size = sum([x for x in spp_data[next(iter(spp_data))].metadata["size"]])
 	raxml_header = f" {len(spp_data)} {tot_size} \n"
 
+	with open(raxml_main, "a") as oh:
+		oh.write(raxml_header)
+
 	for sp in spp_data:
-		spp_data[sp].raxml()
+		spp_data[sp].parse_raxml(raxml_main, name_space = (longest + 10))
 
 
 	"""
