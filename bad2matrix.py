@@ -3,7 +3,65 @@ import os
 import re
 from functools import reduce
 import warnings
-from utils import Term_data, Partition, clean_name, get_name_map
+from utils import Term_data, Partition, clean_name, get_name_map,aa_redux_dict
+
+help_text = """
+
+A Python script for merging and translating FASTA alignments into TNT extended
+XREAD, FastTree FASTA, and RAxML/IQ-Tree extended PHYLIP with indel characters
+(optionally, .tnt & .phy) coded using the 'simple' gap coding method of Simmons
+and Ochoterena (2000; Gaps as characters in sequence-based phylogenetic
+analysis. Systematic Biology 49: 369-381. DOI 10.1080/10635159950173889), and
+with coded gene content (absence/presence) characters (optionally, .tnt & .phy).
+This script is slower than 2matrix.pl due to more disk use, but will not run out
+of RAM (hopefully). The RAxML .part file is either in original RAxML (-r) or
+RAxML-NG format.
+
+USAGE:	BAD2matrix.pl [ -a 2|3|4|5|6|6dso|6kgb|6sr|8|10|11|12|15|18|20 ]
+	-d <directory> [ -f ] [ -g ] [ -i ] [ -m int ] -n <root-name>
+	[ -o speciesA,speciesB... ] [ -r ] [ -t ]
+
+OPTIONS:
+-a	Number of amino acid states (default = 20). Reduction with option '6dso'
+	follows Dayhoff, Schwartz, and Orcutt (1978. A model of evolutionary
+	change in proteins. In Atlas of Protein Sequence and Structure, Dayhoff
+	ed. pp. 345-352); option '6kgb' follows Kosiol, Goldman, and Buttimore
+	(2004. A new criterion and method for amino acid classification. Journal
+	of Theoretical Biology 228:97-106. DOI 10.1016/j.jtbi.2003.12.010);
+	option '6sr' follows Susko and Roger (2007. On reduced amino acid
+	alphabets for phylogenetic inference. Molecular Biology and Evolution 24:
+	2139-2150. DOI 10.1093/molbev/msm144); option '11' follows Buchfink, Xie,
+	and Huson (2015. Fast and sensitive protein alignment using DIAMOND.
+	Nature Methods 12: 59-60. DOI 10.1038/nmeth.3176); and all other options
+	follow Murphy, Wallqvist, and Levy (2000. Simplified amino acid alphabets
+	for protein fold recognition and implications for folding. Protein
+	Engineering 13: 149-52. DOI 10.1093/protein/13.3.149).
+
+-d	Specifies a directory of aligned FASTA files. By default, names should
+	use the OrthologID naming convention ('>species#sequenceID').
+	Characters other than letters, numbers, periods, and underscores will be
+	deleted. Use -f for an alternate naming convention.
+
+-f	Use full FASTA names. Characters other than letters, numbers, periods,
+	and underscores will be deleted.
+
+-g	Do NOT code gene content.
+
+-i	Do NOT code indels.
+
+-m	Retain the upper x percentile of genes in the distribution of missing
+	sequences (default = 1; i.e. include all genes).
+
+-n	<root-name> for output files.
+
+-o	Outgroup(s) for rooting trees.
+
+-r	Output original RAxML formatted .part file.
+
+-t	Data matrix in tsv format, encapsulating ortholog duplication encoding.
+
+"""
+
 
 in_dir = ""
 root_name = ""
@@ -26,7 +84,7 @@ for iar,ar in enumerate(sys.argv):
 
 	if ar == '-a':
 		if re.search(r'^(2|3|4|5|6|6dso|6kgb|6sr|8|10|11|12|15|18|20)$', sys.argv[iar+1]):
-			aa_encoding = 20
+			aa_encoding = sys.argv[iar+1]
 
 	elif ar == '-d':
 		if os.path.exists(sys.argv[iar+1]):
@@ -76,7 +134,10 @@ if in_dir:
 		raise ValueError("Input directory (-d) does not contain any files!")
 
 if len(infiles) > 0 and len(root_name) > 0:
-	
+
+	#|==>> Check if output files already exist
+
+	translation_dict = aa_redux_dict(aa_encoding)
 	raxml_main = root_name + '.phy'
 	raxml_part = root_name + '.part'
 	(name_map, act_files) = get_name_map(infiles, full_fasta_names, keep_percentile)
@@ -85,10 +146,11 @@ if len(infiles) > 0 and len(root_name) > 0:
 	spp_data = {name: Term_data(name) for name in term_names}
 	non_informative_partitions = []
 	final_spp_count = 0
+	part_collection = {'size': [], 'type': [], 'states': []}
 
 	for file in act_files:
 
-		partition = Partition(file, name_map)
+		partition = Partition(file, name_map, translation_dict)
 
 		if code_indels:
 			partition.indel_coder()
@@ -104,6 +166,8 @@ if len(infiles) > 0 and len(root_name) > 0:
 			# Parse all data to each species file		
 			for name in spp_data:
 				spp_data[name].feed(partition)
+			part_collection['size'] += partition.metadata['size']
+			part_collection['type'] += partition.metadata['type']
 
 	# remove uninformative files and spp 
 	if not code_indels:
@@ -120,15 +184,41 @@ if len(infiles) > 0 and len(root_name) > 0:
 
 	# Write matrices to files
 
-	# Write headers
-	tot_size = sum([x for x in spp_data[next(iter(spp_data))].metadata["size"]])
+	tot_size = sum(part_collection['size'])
 	raxml_header = f" {len(spp_data)} {tot_size} \n"
 
+	# Write headers
 	with open(raxml_main, "a") as oh:
 		oh.write(raxml_header)
 
 	for sp in spp_data:
 		spp_data[sp].parse_raxml(raxml_main, name_space = (longest + 10))
+
+
+	# Write partition file
+
+	with open(raxml_part, 'w') as ph:
+		init = 0
+		partinfo = ""
+
+		for ix, (type, size) in enumerate(zip(part_collection['type'], part_collection['size'])):
+			
+			if type == 'nucleic':
+				partinfo += 'GTR+I+G, '
+				
+			elif type == 'peptidic':
+				partinfo += 'Blosum62, '
+			
+			elif type == 'indel':
+				partinfo += 'BIN, '
+
+			elif type == 'morphological':
+				partinfo += f"MULTI{part_collection['states'][ix]}_GTR, "
+			
+			partinfo += f'p{ix+1} = {init+1}-{init+size}\n'
+			init += size
+
+		ph.write(partinfo)
 
 
 	"""
@@ -138,64 +228,13 @@ if len(infiles) > 0 and len(root_name) > 0:
 			compute accesory data (indels, aa counts) 
 	"""
 
+	# Remove temporary files
+	for name in spp_data:
+		spp_data[name].clean()
 
 else:
 
-	print("""
-A Python script for merging and translating FASTA alignments into TNT extended
-XREAD, FastTree FASTA, and RAxML/IQ-Tree extended PHYLIP with indel characters
-(optionally, .tnt & .phy) coded using the 'simple' gap coding method of Simmons
-and Ochoterena (2000; Gaps as characters in sequence-based phylogenetic
-analysis. Systematic Biology 49: 369-381. DOI 10.1080/10635159950173889), and
-with coded gene content (absence/presence) characters (optionally, .tnt & .phy).
-This script is slower than 2matrix.pl due to more disk use, but will not run out
-of RAM (hopefully). The RAxML .part file is either in original RAxML (-r) or
-RAxML-NG format.
-
-USAGE:	BAD2matrix.pl [ -a 2|3|4|5|6|6dso|6kgb|6sr|8|10|11|12|15|18|20 ]
-	-d <directory> [ -f ] [ -g ] [ -i ] [ -m int ] -n <root-name>
-	[ -o speciesA,speciesB... ] [ -r ] [ -t ]
-
-OPTIONS:
--a	Number of amino acid states (default = 20). Reduction with option '6dso'
-	follows Dayhoff, Schwartz, and Orcutt (1978. A model of evolutionary
-	change in proteins. In Atlas of Protein Sequence and Structure, Dayhoff
-	ed. pp. 345–352); option '6kgb' follows Kosiol, Goldman, and Buttimore
-	(2004. A new criterion and method for amino acid classification. Journal
-	of Theoretical Biology 228:97–106. DOI 10.1016/j.jtbi.2003.12.010);
-	option '6sr' follows Susko and Roger (2007. On reduced amino acid
-	alphabets for phylogenetic inference. Molecular Biology and Evolution 24:
-	2139–2150. DOI 10.1093/molbev/msm144); option '11' follows Buchfink, Xie,
-	and Huson (2015. Fast and sensitive protein alignment using DIAMOND.
-	Nature Methods 12: 59–60. DOI 10.1038/nmeth.3176); and all other options
-	follow Murphy, Wallqvist, and Levy (2000. Simplified amino acid alphabets
-	for protein fold recognition and implications for folding. Protein
-	Engineering 13: 149–52. DOI 10.1093/protein/13.3.149).
-
--d	Specifies a directory of aligned FASTA files. By default, names should
-	use the OrthologID naming convention ('>species#sequenceID').
-	Characters other than letters, numbers, periods, and underscores will be
-	deleted. Use -f for an alternate naming convention.
-
--f	Use full FASTA names. Characters other than letters, numbers, periods,
-	and underscores will be deleted.
-
--g	Do NOT code gene content.
-
--i	Do NOT code indels.
-
--m	Retain the upper x percentile of genes in the distribution of missing
-	sequences (default = 1; i.e. include all genes).
-
--n	<root-name> for output files.
-
--o	Outgroup(s) for rooting trees.
-
--r	Output original RAxML formatted .part file.
-
--t  Data matrix in tsv format, encapsulating ortholog duplication encoding.
-
-	""")
+	print(help_text)
 
 
 exit()

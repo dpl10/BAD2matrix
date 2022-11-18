@@ -1,4 +1,5 @@
 import re
+import os
 from functools import reduce
 from itertools import combinations
 from typing import Callable
@@ -72,25 +73,23 @@ def get_name_map(infiles: list, full_fasta_names: bool, keep: float = 1.0) -> di
 
 	if keep < 1:
 		name_set = set()
+
+		# Filter data files
 		file2terms = {z: file2terms[z] for z in	sorted(file2terms, reverse=True, 
 			key=lambda x: len(file2terms[x]))}
 		new_size = int(keep * len(file2terms))
-		#print("Original size:", len(file2terms), "==", len(name_map))
 		file2terms = {x: file2terms[x] for x in list(file2terms.keys())[:new_size]}
 		
+		# Update taxa names
 		for terms in file2terms.values():
 			seqs = [x for x,y in name_map.items() if y in terms]
 			name_set.update(seqs)
 
 		to_rm = []
-		#print(f"{name_map=}")
-		#print(f"{name_set=}")
 		for raw_name in name_map:
 			if not raw_name in name_set:
 				to_rm.append(raw_name)
-		#print(f"{to_rm=}")
 		name_map = {x:name_map[x] for x in name_map if not x in to_rm}
-		#print("Modified size:", len(file2terms), "==", len(name_map))
 		
 	return (name_map, list(file2terms.keys()))
 
@@ -100,13 +99,95 @@ def clean_name(name:str) -> str:
 	name = re.sub(r'[^\w\._]', '', name)
 	return name
 
-#dna_codes = 'ABCD  GH  K MN  RST VW Y'  #-> T
-#rna_codes = 'ABCD  GH  K MN  RS UVW Y'  #-> U
-#aa_codes =  'ABCDEFGHIJKLMNPQRST VWXYZ' #-> EFILPQ JZX
+#dna_codes = 'ABCD  GH  K MN   RST  VW Y'  #-> T
+#rna_codes = 'ABCD  GH  K MN   RS  UVW Y'  #-> U # U can be Selenocisteine!
+#aa_codes =  'ABCDEFGHIJKLMNOPQRST UVWXYZ' #-> EFILOPQ JZX
+
+
+def aa_redux_dict(redux_code):
+	trans_dict = {}
+	orig = "OU" # remove pyrrolycine and selenocisteine
+	dest = "KC"
+
+	if redux_code == '2':
+		orig += "LVIMCAGSTPFYW EDNQKRH"
+		dest += "FFFFFFFFFFFFF EEEEEEE"
+		trans_dict = str.maketrans(orig, dest)
+
+	elif redux_code == '3':
+		orig += "LASGVTIPMC EKRDNQH FYW"
+		dest += "IIIIIIIIII EEEEEEE FFF"
+		trans_dict = str.maketrans(orig, dest)
+
+	elif redux_code == '4':
+		orig += "LVIMC AGSTP FYW EDNQKRH"
+		dest += "IIIII PPPPP FFF EEEEEEE"
+		trans_dict = str.maketrans(orig, dest)
+
+	elif redux_code == '5':
+		orig += "LVIMC ASGTP FYW EDNQ KRH"
+		dest += "IIIII PPPPP FFF EEEE KKK"
+		trans_dict = str.maketrans(orig, dest)
+
+	elif redux_code == '6':
+		orig += "LVIM ASGT PHC FYW EDNQ KR"
+		dest += "IIII AAAA PPP FFF EEEE KK"
+		trans_dict = str.maketrans(orig, dest)
+
+	elif redux_code == '6dso':
+		orig += "AGPST DENQ HKR MIVL WFY C"
+		dest += "PPPPP EEEE HHH IIII FFF C"
+		trans_dict = str.maketrans(orig, dest)
+
+	elif redux_code == '6kgb':
+		orig += "AGPS DENQHKRT MIL W FY CV"
+		dest += "PPPP EEEEEEEE III W FF CC"
+		trans_dict = str.maketrans(orig, dest)
+
+	elif redux_code == '6sr':
+		orig += "APST DENG QKR MIVL WC FYH"
+		dest += "PPPP EEEE QQQ IIII CC FFF"
+		trans_dict = str.maketrans(orig, dest)
+
+	elif redux_code == '8':
+		orig += "LVIMC AG ST P FYW EDNQ KR H"
+		dest += "IIIII AA SS P FFF EEEE KK H"
+		trans_dict = str.maketrans(orig, dest)
+
+	elif redux_code == '10':
+		orig += "LVIM C A G ST P FYW EDNQ KR H"
+		dest += "IIII C A G SS P FFF EEEE KK H"
+		trans_dict = str.maketrans(orig, dest)
+	
+	elif redux_code == '11':
+		orig += "KREDQN C G H ILV M F Y W P STA"
+		dest += "EEEEEE C G H III M F Y W P AAA"
+		trans_dict = str.maketrans(orig, dest)
+
+	elif redux_code == '12':
+		orig += "LVIM C A G ST P FY W EQ DN KR H"
+		dest += "IIII C A G SS P FF W EE DD KK H"
+		trans_dict = str.maketrans(orig, dest)
+
+	elif redux_code == '15':
+		orig += "LVIM C A G S T P FY W E D N Q KR H"
+		dest += "IIII C A G S T P FF W E D N Q KK H"
+		trans_dict = str.maketrans(orig, dest)
+
+	elif redux_code == '18':
+		orig += "LM VI C A G S T P F Y W E D N Q K R H"
+		dest += "LL II C A G S T P F Y W E D N Q K R H"
+		trans_dict = str.maketrans(orig, dest)
+
+	orig = orig.replace(" ", "")
+	dest = dest.replace(" ", "")
+	trans_dict = str.maketrans(orig, dest)
+
+	return trans_dict
 
 class Partition:
 
-	def __init__(self, filename: str, name_map: dict):
+	def __init__(self, filename: str, name_map: dict, translation_dict: dict=None):
 
 		self.data = {}
 
@@ -167,7 +248,14 @@ class Partition:
 			self.metadata["type"].append("nucleic")
 		
 		else:
-			raise ValueError('WTF')
+			raise ValueError('WTF')  #<<=== Raise the appropriate error here |==>>
+
+
+		# Peptidic state reduction
+		if translation_dict and self.metadata["type"][-1] == "peptidic":
+			for term in self.data:
+				self.data[term] = self.data[term].translate(translation_dict)
+
 
 
 	def indel_coder(self):
@@ -282,8 +370,8 @@ class Partition:
 	def seq_type(self, sequence):
 
 		seq_type = None
-		no_valid = re.compile(r'[^ABCDEFGHIJKLMNPQRSTUVWXYZ\-]')
-		prot = re.compile(r'[EFILPQJZX]')
+		no_valid = re.compile(r'[^ABCDEFGHIJKLMNOPQRSTUVWXYZ\-]')
+		prot = re.compile(r'[EFILOPQJZX]')
 		robj_no_valid = no_valid.search(sequence)
 		
 		if robj_no_valid:
@@ -363,9 +451,14 @@ class Term_data:
 		return None
 
 
+	def clean(self):
+		if os.path.exists(self.file):
+			os.remove(self.file)
+	
+
 	def parse_raxml(self, 
 		outfile: str, 
-		dna_translator: Callable[[str], str] = lambda x: x, 
+		dna_translator: Callable[[str], str] = lambda x: x, #===>> remove translators from this function 
 		aa_translator:  Callable[[str], str] = lambda x: x,
 		name_space = 20):
 
