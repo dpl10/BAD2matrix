@@ -17,9 +17,9 @@ This script is slower than 2matrix.pl due to more disk use, but will not run out
 of RAM (hopefully). The RAxML .part file is either in original RAxML (-r) or
 RAxML-NG format.
 
-USAGE:	BAD2matrix.pl [ -a 2|3|4|5|6|6dso|6kgb|6sr|8|10|11|12|15|18|20 ]
+USAGE:	python bsd2matrix.py [ -a 2|3|4|5|6|6dso|6kgb|6sr|8|10|11|12|15|18|20 ]
 	-d <directory> [ -f ] [ -g ] [ -i ] [ -m int ] -n <root-name>
-	[ -o speciesA,speciesB... ] [ -r ] [ -t ]
+	[ -o speciesA,speciesB... ] [ -t <directory> ]
 
 OPTIONS:
 -a	Number of amino acid states (default = 20). Reduction with option '6dso'
@@ -56,9 +56,8 @@ OPTIONS:
 
 -o	Outgroup(s) for rooting trees.
 
--r	Output original RAxML formatted .part file.
-
--t	Data matrix in tsv format, encapsulating ortholog duplication encoding.
+-t	Folder containing data matrices in tsv format, encapsulating ortholog 
+	duplication encoding.
 
 """
 
@@ -135,13 +134,13 @@ if in_dir:
 
 if len(infiles) > 0 and len(root_name) > 0:
 
-	#|==>> Check if output files already exist
+	#TODO Check if output files already exist
 
 	translation_dict = aa_redux_dict(aa_encoding)
 	raxml_main = root_name + '.phy'
 	raxml_part = root_name + '.part'
 	(name_map, act_files) = get_name_map(infiles, full_fasta_names, keep_percentile)
-	term_names = sorted(list(set(name_map.values()))) # Why sort should be done in reverse order?
+	term_names = sorted(list(set(name_map.values()))) #? Why sort should be done in reverse order?
 	longest = len(max(term_names, key = len))
 	spp_data = {name: Term_data(name) for name in term_names}
 	non_informative_partitions = []
@@ -221,12 +220,12 @@ if len(infiles) > 0 and len(root_name) > 0:
 		ph.write(partinfo)
 
 
-	"""
-	for each fasta file:
-		for each taxa in the total count:
-			parse to the temporary file
-			compute accesory data (indels, aa counts) 
-	"""
+	
+	#for each fasta file:
+	#	for each taxa in the total count:
+	#		parse to the temporary file
+	#		compute accesory data (indels, aa counts) 
+	
 
 	# Remove temporary files
 	for name in spp_data:

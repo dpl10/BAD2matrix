@@ -32,7 +32,7 @@ def get_name_map(infiles: list, full_fasta_names: bool, keep: float = 1.0) -> di
 	name_map = {}
 	file2terms = {}
 	
-	for file in infiles:
+	for file in sorted(infiles):
 
 		########################################################################
 		# File naming convention of inputs should be stated in the instructions.
