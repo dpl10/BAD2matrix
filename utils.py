@@ -2,7 +2,7 @@ import re
 import os
 from functools import reduce
 from itertools import combinations
-from typing import Callable
+from typing import Callable, List, Dict
 import warnings
 
 nucl_amb_codes = {
@@ -27,49 +27,66 @@ prot_amb_codes = {
 	'Z': ['E', 'Q']
 }
 
-def get_name_map(infiles: list, full_fasta_names: bool, keep: float = 1.0) -> dict:
+def get_name_map(infiles: List[str], full_fasta_names: bool, keep: float = 1.0, 
+		 infiles_morph: List[str] = []) -> dict:
 
 	name_map = {}
 	file2terms = {}
 	
-	for file in sorted(infiles):
+	for file in sorted(infiles + infiles_morph):
 
-		########################################################################
+		###########################    TODO    #################################
 		# File naming convention of inputs should be stated in the instructions.
 		# Two classes of input matrices: molecular or morphological/gene dupli-
 		# cation events. User should mention which is which through the file
 		# extension.
 		######################################################################## 
+		file_type = None
+		thname_map = {}
+		file2terms[file] = []
+
 		if re.search(r'\.(fas|fasta)$', file):
-
-			with open(file, 'r') as fhandle:
-				thname_map = {}
-				file2terms[file] = []
-
-				for line in fhandle:
-
-					if line.startswith(">"):
-						# All cleaning procedures of terminal names should be done here.
-						raw_name = line.strip()
-						name = raw_name
-						if not full_fasta_names:
-							name = re.split(r'#+', name)[0]
-						name = clean_name(name)
-						thname_map[raw_name] = name
-						file2terms[file].append(name)
-
-				if len(set(thname_map.values())) < len(thname_map):
-
-					thnames = list(thname_map.keys())
-					dup_count = list(map(lambda x: thnames.count(x), thnames))
-					prob = [x for x,y in zip(thnames, dup_count) if y > 1]
-					err = '\n'.join(prob)
-					raise ValueError(f"Check the following sequence names in ´{file}´, there could be duplicates:\n{err}.\n")
-
-				name_map.update(thname_map)
-
+			file_type = 'fasta'
+		elif re.search(r'\.tsv$', file):
+			file_type = 'tsv'
 		else:
 			warnings.warn(f"File `{file}` skipped.")
+			continue
+
+		#print(f'{file=}, {file_type=}')
+		with open(file, 'r') as fhandle:
+
+			for line_num, line in enumerate(fhandle):
+				raw_name = None
+
+				if file_type == 'tsv' and line_num > 0:
+					bits = re.split(r'\t', line)
+					raw_name = bits[0]
+					#print(f'{raw_name=}')
+
+				elif file_type == 'fasta' and line.startswith(">"):
+					line = line.lstrip('>')
+					raw_name = line.strip()
+
+				if raw_name: # All cleaning procedures of terminal names should be done here.
+					name = raw_name
+					if not full_fasta_names: name = re.split(r'#+', name)[0]
+					name = clean_name(name)
+					print(f'{raw_name=}, {name=}')
+					thname_map[raw_name] = name
+					file2terms[file].append(name)				
+
+			#print(f'{thname_map=}')
+			if len(set(thname_map.values())) < len(thname_map):
+
+				dup_count = {v:0 for v in thname_map.values()}
+				for k in thname_map:
+					dup_count[thname_map[k]] += 1
+				dup_count = {k:v for k,v in dup_count.items() if v > 1}
+				err = '\n'.join([k for k in thname_map if thname_map[k] in dup_count])
+				raise ValueError(f"Check the following sequence names in ´{file}´, there could be duplicates:\n{err}\n")
+
+			name_map.update(thname_map)
 
 	if keep < 1:
 		name_set = set()
@@ -90,7 +107,9 @@ def get_name_map(infiles: list, full_fasta_names: bool, keep: float = 1.0) -> di
 			if not raw_name in name_set:
 				to_rm.append(raw_name)
 		name_map = {x:name_map[x] for x in name_map if not x in to_rm}
-		
+	
+	#print(f'\n{file2terms=}\n{name_map=}\n')
+
 	return (name_map, list(file2terms.keys()))
 
 
@@ -104,7 +123,7 @@ def clean_name(name:str) -> str:
 #aa_codes =  'ABCDEFGHIJKLMNOPQRST UVWXYZ' #-> EFILOPQ JZX
 
 
-def aa_redux_dict(redux_code):
+def aa_redux_dict(redux_code: str) -> Dict[str, str]:
 	trans_dict = {}
 	orig = "OU" # remove pyrrolycine and selenocisteine
 	dest = "KC"
@@ -221,7 +240,7 @@ class Partition:
 						th_term = ''
 						th_seq = ''
 
-					th_term = name_map[line]
+					th_term = name_map[line.lstrip('>')]
 
 				else:
 					th_seq += line.upper()

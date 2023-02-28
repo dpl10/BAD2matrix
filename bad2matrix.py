@@ -43,7 +43,8 @@ OPTIONS:
 	deleted. Use -f for an alternate naming convention.
 
 -f	Use full FASTA names. Characters other than letters, numbers, periods,
-	and underscores will be deleted.
+	and underscores will be deleted. Default is the species root name: the string 
+	before the first sharp ('#').
 
 -g	Do NOT code gene content.
 
@@ -63,9 +64,11 @@ OPTIONS:
 
 
 in_dir = ""
+in_dir_morph = ""
 root_name = ""
 full_fasta_names = False
 infiles = []
+infiles_morph = []
 term_names = []
 name_map = {}
 code_indels = True
@@ -79,6 +82,7 @@ raxml_bffr = ""
 
 debbug = False
 
+# parse command line arguments
 for iar,ar in enumerate(sys.argv):
 
 	if ar == '-a':
@@ -116,13 +120,22 @@ for iar,ar in enumerate(sys.argv):
 
 	elif ar == '-t':
 		if os.path.exists(sys.argv[iar+1]):
-			tsv_file = sys.argv[iar+1]
+			in_dir_morph = sys.argv[iar+1]
 		else:
-			raise ValueError("Input tsv file (-t) could not be read!")
+			raise ValueError("Input directory (-t) could not be read!")
 
 	elif ar == '-debbug':
 		debbug = True
 
+
+# Check input directory contents
+if in_dir_morph:
+	for d, s, f in os.walk(in_dir_morph):
+		for file in f:
+			infiles_morph.append(os.path.join(d,file))
+
+	if len(infiles_morph) == 0:
+		raise ValueError("Input directory (-t) does not contain any files!")
 
 if in_dir:
 	for d, s, f in os.walk(in_dir):
@@ -132,6 +145,7 @@ if in_dir:
 	if len(infiles) == 0:
 		raise ValueError("Input directory (-d) does not contain any files!")
 
+
 if len(infiles) > 0 and len(root_name) > 0:
 
 	#TODO Check if output files already exist
@@ -139,7 +153,7 @@ if len(infiles) > 0 and len(root_name) > 0:
 	translation_dict = aa_redux_dict(aa_encoding)
 	raxml_main = root_name + '.phy'
 	raxml_part = root_name + '.part'
-	(name_map, act_files) = get_name_map(infiles, full_fasta_names, keep_percentile)
+	(name_map, act_files) = get_name_map(infiles, full_fasta_names, keep_percentile, infiles_morph)
 	term_names = sorted(list(set(name_map.values()))) #? Why sort should be done in reverse order?
 	longest = len(max(term_names, key = len))
 	spp_data = {name: Term_data(name) for name in term_names}
@@ -194,7 +208,7 @@ if len(infiles) > 0 and len(root_name) > 0:
 		spp_data[sp].parse_raxml(raxml_main, name_space = (longest + 10))
 
 
-	# Write partition file
+	# Write RAxML partition file
 
 	with open(raxml_part, 'w') as ph:
 		init = 0
