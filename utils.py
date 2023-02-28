@@ -443,7 +443,7 @@ class Term_data:
 	
 	def __init__(self, name: str):
 		self.name = name
-		self.file = "temporary_file_for_" + self.name + "_do_not_delete_or_you_will_die.fasta"
+		self.file = "temporary_file_for_" + self.name + "_do_not_delete_or_you_will_die.txt"
 		self.metadata = {"size": [], "type": [], "informative_chars": [], "presence": [], "origin": []}
 		self.size = 0
 
