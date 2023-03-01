@@ -209,52 +209,104 @@ class Partition:
 	def __init__(self, filename: str, name_map: dict, translation_dict: dict=None):
 
 		self.data = {}
+		self.filetype = None
+		self.origin = filename
 
-		# Describes "subpartitions"
-		# Char length, Char type, Informative count, Informative positions
-		# Char types: `nucleic`, `peptidic`, `indel`, `morphological`
-		self.metadata = {"size": [], "type": [], "informative_chars": [], "origin": [filename]}
-		#==> Include name in metadata <==
+		
+		self.metadata = { # Describes "subpartitions"
+			"size": [], # Char length
+			"type": [], # Char types: `nucleic`, `peptidic`, `indel`, `morphological`
+			"informative_chars": [], # Number of Informative positions
+			#"origin": [filename], 
+			"character_names": [],
+			"states" : []
+			}
+		#TODO==> Include name in metadata <==
 
-		with open(filename, 'r') as fhandle:
+		if re.search(r'\.(fas|fasta)$', self.origin):
+			self.filetype = 'fasta'
+
+		elif re.search(r'\.tsv$', self.origin):
+			self.filetype = 'tsv'
+
+		with open(self.origin, 'r') as fhandle:
+			print(f'{self.origin=}')
 			char_lens = {}
 			th_term = ''
 			th_seq = ''
 			types = {}
 
-			for line in fhandle:
-				line = line.strip()
+			if self.filetype == 'fasta':
+				
+				for line in fhandle:
+					line = line.strip()
 
-				if line.startswith('>'):
+					if line.startswith('>'):
 
-					if th_term and th_seq:
-						char_lens[len(th_seq)] = 0
+						if th_term and th_seq:
+							char_lens[len(th_seq)] = 0
+
+							if len(char_lens.keys()) > 1:
+								raise ValueError(f"Sequences in {filename} have different lengths, probably they are not aligned.")
+
+							th_seq = th_seq.upper()
+							thtype = self.seq_type(th_seq)
+							types[thtype] = 0
+							self.data[th_term] = th_seq
+							th_term = ''
+							th_seq = ''
+
+						th_term = name_map[line.lstrip('>')]
+
+					else:
+						th_seq += line.upper()
+
+				# Capture data of last fasta entry
+				if th_term and th_seq:
+					char_lens[len(th_seq)]
+
+					if len(char_lens.keys()) > 1:
+						raise ValueError(f"Sequences in {filename} have different lengths, probably they are not aligned.")
+
+					th_seq = th_seq.upper()
+					thtype = self.seq_type(th_seq)
+					types[thtype] = 0
+					self.data[th_term] = th_seq
+
+				self.metadata['states'].append(None)
+
+			elif self.filetype == 'tsv':
+
+				types['morphological'] = 0
+				charset = set()
+
+				for line_idx, line in enumerate(fhandle):
+					line = line.strip()
+
+					if line_idx == 0:
+						self.metadata["character_names"] = re.split(r'\t', line)[1:]
+
+					else:
+						#! No polymorphisms
+						bits = re.split(r'\t', line)
+						char_lens[len(bits[1:])] = 0
 
 						if len(char_lens.keys()) > 1:
-							raise ValueError(f"Sequences in {filename} have different lengths, probably they are not aligned.")
-
-						th_seq = th_seq.upper()
-						thtype = self.seq_type(th_seq)
-						types[thtype] = 0
+							raise ValueError(f"OTUs in {filename} have different character observations, check for missing data.")
+						th_term = name_map[bits[0]]
+						th_seq = ''.join(bits[1:])
+						charset.update(set(th_seq))
 						self.data[th_term] = th_seq
-						th_term = ''
-						th_seq = ''
 
-					th_term = name_map[line.lstrip('>')]
+				#Checking proper state conventions
+				if '?' in charset:
+					charset.remove('?')
+				
+				if charset != set([str(x) for x in range(len(charset))]):
+					raise ValueError('Morphological states are not encoded as strict number sequence starting at zero.')
+				
+				self.metadata['states'].append(len(charset))
 
-				else:
-					th_seq += line.upper()
-
-			if th_term and th_seq:
-				char_lens[len(th_seq)]
-
-				if len(char_lens.keys()) > 1:
-					raise ValueError(f"Sequences in {filename} have different lengths, probably they are not aligned.")
-
-				th_seq = th_seq.upper()
-				thtype = self.seq_type(th_seq)
-				types[thtype] = 0
-				self.data[th_term] = th_seq
 
 		types = list(set(types.keys()))
 		self.metadata["size"].append(list(char_lens.keys())[0])
@@ -266,6 +318,9 @@ class Partition:
 		elif 'nucleic' in types:
 			self.metadata["type"].append("nucleic")
 		
+		elif 'morphological' in types:
+			self.metadata["type"].append("morphological")
+
 		else:
 			raise ValueError('WTF')  #<<=== Raise the appropriate error here |==>>
 
@@ -383,7 +438,8 @@ class Partition:
 		self.metadata["size"].append(len(indel_set))
 		self.metadata["type"].append("indel")	
 		self.metadata["informative_chars"].append([])
-		self.metadata["origin"].append( f'{self.metadata["origin"][0]}_indels' )
+		self.metadata['states'].append(None)
+		#self.metadata["origin"].append( f'{self.metadata["origin"][0]}_indels' )
 
 
 	def seq_type(self, sequence):
@@ -444,7 +500,7 @@ class Term_data:
 	def __init__(self, name: str):
 		self.name = name
 		self.file = "temporary_file_for_" + self.name + "_do_not_delete_or_you_will_die.txt"
-		self.metadata = {"size": [], "type": [], "informative_chars": [], "presence": [], "origin": []}
+		self.metadata = {"size": [], "type": [], "informative_chars": [], "presence": []} #, "origin": []}
 		self.size = 0
 
 	def feed(self, part: Partition):
@@ -464,7 +520,7 @@ class Term_data:
 			self.metadata["size"] += part.metadata["size"]
 			self.metadata["type"] += part.metadata["type"]
 			self.metadata["informative_chars"] += part.metadata["informative_chars"]
-			self.metadata["origin"] += part.metadata["origin"]		
+			#self.metadata["origin"] += part.metadata["origin"]		
 			self.metadata["presence"] += [is_present for x in part.metadata["size"]]
 
 		return None

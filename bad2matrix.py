@@ -165,7 +165,7 @@ if len(infiles) > 0 and len(root_name) > 0:
 
 		partition = Partition(file, name_map, translation_dict)
 
-		if code_indels:
+		if code_indels and partition.filetype == 'fasta':
 			partition.indel_coder()
 
 		partition.informative_stats()
@@ -181,6 +181,7 @@ if len(infiles) > 0 and len(root_name) > 0:
 				spp_data[name].feed(partition)
 			part_collection['size'] += partition.metadata['size']
 			part_collection['type'] += partition.metadata['type']
+			part_collection['states'] += partition.metadata['states']
 
 	# remove uninformative files and spp 
 	if not code_indels:
@@ -209,27 +210,33 @@ if len(infiles) > 0 and len(root_name) > 0:
 
 
 	# Write RAxML partition file
-
 	with open(raxml_part, 'w') as ph:
 		init = 0
 		partinfo = ""
 
-		for ix, (type, size) in enumerate(zip(part_collection['type'], part_collection['size'])):
+		for ix, thtype in enumerate(part_collection['type']):
 			
-			if type == 'nucleic':
+			if thtype == 'nucleic':
 				partinfo += 'GTR+I+G, '
 				
-			elif type == 'peptidic':
+			elif thtype == 'peptidic':
 				partinfo += 'Blosum62, '
 			
-			elif type == 'indel':
+			elif thtype == 'indel':
 				partinfo += 'BIN, '
 
-			elif type == 'morphological':
-				partinfo += f"MULTI{part_collection['states'][ix]}_GTR, "
+			elif thtype == 'morphological':
+				states = part_collection['states'][ix]
+				
+				if states == 2:
+					partinfo += 'BIN, '
+				elif states > 2:
+					partinfo += f"MULTI{states}_GTR, "
+				else:
+					raise ValueError("Morphological partition is uninformative.")
 			
-			partinfo += f'p{ix+1} = {init+1}-{init+size}\n'
-			init += size
+			partinfo += f"p{ix+1} = {init+1}-{init + part_collection['size'][ix]}\n"
+			init += part_collection['size'][ix]
 
 		ph.write(partinfo)
 
