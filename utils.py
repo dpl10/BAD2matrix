@@ -72,7 +72,7 @@ def get_name_map(infiles: List[str], full_fasta_names: bool, keep: float = 1.0,
 					name = raw_name
 					if not full_fasta_names: name = re.split(r'#+', name)[0]
 					name = clean_name(name)
-					print(f'{raw_name=}, {name=}')
+					#print(f'{raw_name=}, {name=}')
 					thname_map[raw_name] = name
 					file2terms[file].append(name)				
 
@@ -230,7 +230,7 @@ class Partition:
 			self.filetype = 'tsv'
 
 		with open(self.origin, 'r') as fhandle:
-			print(f'{self.origin=}')
+			#print(f'{self.origin=}')
 			char_lens = {}
 			th_term = ''
 			th_seq = ''
@@ -533,7 +533,8 @@ class Term_data:
 
 	def parse_raxml(self, 
 		outfile: str, 
-		dna_translator: Callable[[str], str] = lambda x: x, #===>> remove translators from this function 
+		#TODO remove translators from this function
+		dna_translator: Callable[[str], str] = lambda x: x, 
 		aa_translator:  Callable[[str], str] = lambda x: x,
 		name_space = 20):
 
@@ -560,6 +561,49 @@ class Term_data:
 
 							elif self.metadata["type"][ipart] == 'peptidic':
 								ohandle.write(aa_translator(data[init:end]))
+
+							elif self.metadata["type"][ipart] == 'indel':
+								ohandle.write(data[init:end])
+
+							elif self.metadata["type"][ipart] == 'morphological':
+								ohandle.write(data[init:end])
+
+						else:
+							# write missing data
+							ohandle.write("-" * self.metadata["size"][ipart])
+
+			ohandle.write('\n')
+
+
+	def parse_iqtree(self, 
+		outfile: str, 
+		#dna_translator: Callable[[str], str] = lambda x: x, #===>> remove translators from this function 
+		#aa_translator:  Callable[[str], str] = lambda x: x,
+		name_space = 20):
+
+		with open(outfile, 'a') as ohandle:
+			pad = name_space - len(self.name)
+			init = self.name + " " * pad
+			ohandle.write(init)
+
+			with open(self.file, 'r') as ihandle:
+					
+				for data in ihandle:
+					init = 0
+					end = 0
+				
+					for ipart, isize in enumerate(self.metadata["size"]):
+						
+						if self.metadata["presence"][ipart]: 
+
+							init = end
+							end = init + isize
+
+							if self.metadata["type"][ipart] == 'nucleic':
+								ohandle.write(data[init:end])
+
+							elif self.metadata["type"][ipart] == 'peptidic':
+								ohandle.write(data[init:end])
 
 							elif self.metadata["type"][ipart] == 'indel':
 								ohandle.write(data[init:end])
