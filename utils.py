@@ -517,10 +517,11 @@ class Term_data:
 				with open(self.file, 'a') as fh:
 					fh.write(part.data[self.name])
 
+			#TODO Most of the metadata (except presence) should be held globally, it is the same across partitions
 			self.metadata["size"] += part.metadata["size"]
 			self.metadata["type"] += part.metadata["type"]
 			self.metadata["informative_chars"] += part.metadata["informative_chars"]
-			#self.metadata["origin"] += part.metadata["origin"]		
+			#self.metadata["origin"] += part.metadata["origin"]
 			self.metadata["presence"] += [is_present for x in part.metadata["size"]]
 
 		return None
@@ -531,17 +532,17 @@ class Term_data:
 			os.remove(self.file)
 	
 
-	def parse_raxml(self, 
-		outfile: str, 
-		#TODO remove translators from this function
-		dna_translator: Callable[[str], str] = lambda x: x, 
-		aa_translator:  Callable[[str], str] = lambda x: x,
-		name_space = 20):
+	def parse_phylip_block(self, outfile: str, name_space: int = 20, 
+		partition_type: str = 'all'):
+
+		if partition_type == 'all':
+			partition_type = ['nucleic', 'peptidic','indel', 'morphological']
+		else:
+			partition_type = [partition_type]
 
 		with open(outfile, 'a') as ohandle:
 			pad = name_space - len(self.name)
-			init = self.name + " " * pad
-			ohandle.write(init)
+			ohandle.write(self.name + " " * pad)
 
 			with open(self.file, 'r') as ihandle:
 					
@@ -550,70 +551,17 @@ class Term_data:
 					end = 0
 				
 					for ipart, isize in enumerate(self.metadata["size"]):
-						
-						if self.metadata["presence"][ipart]: 
 
+						if self.metadata["presence"][ipart]: 
 							init = end
 							end = init + isize
 
-							if self.metadata["type"][ipart] == 'nucleic':
-								ohandle.write(dna_translator(data[init:end]))
-
-							elif self.metadata["type"][ipart] == 'peptidic':
-								ohandle.write(aa_translator(data[init:end]))
-
-							elif self.metadata["type"][ipart] == 'indel':
-								ohandle.write(data[init:end])
-
-							elif self.metadata["type"][ipart] == 'morphological':
+							if self.metadata["type"][ipart] in partition_type:
 								ohandle.write(data[init:end])
 
 						else:
-							# write missing data
-							ohandle.write("-" * self.metadata["size"][ipart])
-
-			ohandle.write('\n')
-
-
-	def parse_iqtree(self, 
-		outfile: str, 
-		#dna_translator: Callable[[str], str] = lambda x: x, #===>> remove translators from this function 
-		#aa_translator:  Callable[[str], str] = lambda x: x,
-		name_space = 20):
-
-		with open(outfile, 'a') as ohandle:
-			pad = name_space - len(self.name)
-			init = self.name + " " * pad
-			ohandle.write(init)
-
-			with open(self.file, 'r') as ihandle:
-					
-				for data in ihandle:
-					init = 0
-					end = 0
-				
-					for ipart, isize in enumerate(self.metadata["size"]):
-						
-						if self.metadata["presence"][ipart]: 
-
-							init = end
-							end = init + isize
-
-							if self.metadata["type"][ipart] == 'nucleic':
-								ohandle.write(data[init:end])
-
-							elif self.metadata["type"][ipart] == 'peptidic':
-								ohandle.write(data[init:end])
-
-							elif self.metadata["type"][ipart] == 'indel':
-								ohandle.write(data[init:end])
-
-							elif self.metadata["type"][ipart] == 'morphological':
-								ohandle.write(data[init:end])
-
-						else:
-							# write missing data
-							ohandle.write("-" * self.metadata["size"][ipart])
+							if self.metadata["type"][ipart] in partition_type: # write missing data
+								ohandle.write("-" * self.metadata["size"][ipart])
 
 			ohandle.write('\n')
 

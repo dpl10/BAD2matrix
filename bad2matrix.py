@@ -184,6 +184,8 @@ if len(infiles) > 0 and len(root_name) > 0:
 			part_collection['type'] += partition.metadata['type']
 			part_collection['states'] += partition.metadata['states']
 
+	#print(f'{part_collection=}')
+
 	# remove uninformative files and spp 
 	if not code_indels:
 		act_files = [x for x in act_files if not x in non_informative_partitions]
@@ -196,18 +198,53 @@ if len(infiles) > 0 and len(root_name) > 0:
 	
 	spp_data = {sp: spp_data[sp] for sp in spp_data if 
 				len([x for x in spp_data[sp].metadata["presence"] if x]) > 0}
+	
+	#for spe in spp_data:
+	#	print(f'{spp_data[spe].metadata=}')
 
-	# Write multiple IQTREE phylip matrices
-	iqtree_sets = [] # group partition idxs by type
-	th = [x for x in range(part_collection) if part_collection['type'] == 'nucleic']
-	if len(th) > 0: iqtree_sets.append(th)
-	th = [x for x in range(part_collection) if part_collection['type'] == 'peptidic']
-	if len(th) > 0: iqtree_sets.append(th)
-	th = [x for x in range(part_collection) if part_collection['type'] in ['indel', 'morphological']]
-	if len(th) > 0: iqtree_sets.append(th)
+	# Write IQtree phylip files
+	iqtree_sets = set(part_collection['type'])
 
-	for partset in iqtree_sets:
-		pass
+	for settype in iqtree_sets:
+
+		thfile = f'{root_name}_{settype}.phy'
+		th_sizes = [part_collection['size'][d] for d in range(len(part_collection['size'])) 
+				if part_collection['type'][d] == settype]
+		tot_size = sum(th_sizes)
+		header = f" {len(spp_data)} {tot_size} \n"
+		with open(thfile, "a") as oh:
+			oh.write(header)
+		for sp in spp_data:
+			spp_data[sp].parse_phylip_block(thfile, name_space = (longest + 10), partition_type=settype)
+
+	# Write IQtree nexus file
+	with open(iqtree_nexus, 'w') as iqhandle:
+		init = 0
+		partinfo = "#nexus\nbegin sets;\n"
+		model_spec = "\tcharpartition mine = "
+
+		for ix, thtype in enumerate(part_collection['type']):
+			
+			if thtype == 'nucleic':
+				model_spec += f'GTR+I+G:part{ix+1}, '
+				
+			elif thtype == 'peptidic':
+				model_spec += f'Blosum62:part{ix+1}, '
+			
+			elif thtype == 'indel':
+				model_spec += f'GTR2:part{ix+1}, '
+
+			elif thtype == 'morphological':
+				model_spec += f'MK:part{ix+1}, '
+							
+			partinfo += f"\tcharset part{ix+1} = {root_name}_{thtype}.phy: {init+1}-{init + part_collection['size'][ix]};\n"
+			init += part_collection['size'][ix]
+
+		model_spec = model_spec.rstrip(', ')
+		partinfo += model_spec + ';\nend;\n'
+		iqhandle.write(partinfo)
+
+
 
 	# Write RAxML single phylip matrix
 	tot_size = sum(part_collection['size'])
@@ -215,7 +252,7 @@ if len(infiles) > 0 and len(root_name) > 0:
 	with open(raxml_main, "a") as oh:
 		oh.write(raxml_header)
 	for sp in spp_data:
-		spp_data[sp].parse_raxml(raxml_main, name_space = (longest + 10))
+		spp_data[sp].parse_phylip_block(raxml_main, name_space = (longest + 10))
 
 
 	# Write RAxML partition file
@@ -249,35 +286,6 @@ if len(infiles) > 0 and len(root_name) > 0:
 
 		ph.write(partinfo)
 
-
-	# Write IQtree nexus file
-	with open(iqtree_nexus, 'w') as iqhandle:
-		init = 0
-		partinfo = "#nexus\nbegin sets;"
-		model_spec = "\tcharpartition mine = "
-
-		for ix, thtype in enumerate(part_collection['type']):
-			
-			if thtype == 'nucleic':
-				model_spec += f'GTR+I+G:part{ix+1}, '
-				
-			elif thtype == 'peptidic':
-				model_spec += f'Blosum62:part{ix+1}, '
-			
-			elif thtype == 'indel':
-				model_spec += f'GTR2:part{ix+1}, '
-
-			elif thtype == 'morphological':
-				model_spec += f'MK:part{ix+1}, '
-							
-			partinfo += f"\tcharset part{ix+1} = {init+1}-{init + part_collection['size'][ix]};\n"
-			init += part_collection['size'][ix]
-
-		model_spec = model_spec.rstrip(', ')
-		partinfo += model_spec + ';\nend;\n'
-		iqhandle.write(partinfo)
-
-	
 
 	# Remove temporary files
 	for name in spp_data:
