@@ -219,7 +219,8 @@ if len(infiles) > 0 and len(root_name) > 0:
 
 	# Write IQtree nexus file
 	with open(iqtree_nexus, 'w') as iqhandle:
-		init = 0
+		#init = 0
+		init = {'nucleic':0, 'peptidic':0, 'indel':0, 'morphological':0} 
 		partinfo = "#nexus\nbegin sets;\n"
 		model_spec = "\tcharpartition mine = "
 
@@ -237,8 +238,8 @@ if len(infiles) > 0 and len(root_name) > 0:
 			elif thtype == 'morphological':
 				model_spec += f'MK:part{ix+1}, '
 							
-			partinfo += f"\tcharset part{ix+1} = {root_name}_{thtype}.phy: {init+1}-{init + part_collection['size'][ix]};\n"
-			init += part_collection['size'][ix]
+			partinfo += f"\tcharset part{ix+1} = {root_name}_{thtype}.phy: {init[thtype]+1}-{init[thtype] + part_collection['size'][ix]};\n"
+			init[thtype] += part_collection['size'][ix]
 
 		model_spec = model_spec.rstrip(', ')
 		partinfo += model_spec + ';\nend;\n'

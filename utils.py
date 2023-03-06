@@ -2,7 +2,7 @@ import re
 import os
 from functools import reduce
 from itertools import combinations
-from typing import Callable, List, Dict
+from typing import List, Dict
 import warnings
 
 nucl_amb_codes = {
