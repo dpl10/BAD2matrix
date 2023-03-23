@@ -3,7 +3,7 @@ import os
 import re
 from functools import reduce
 import warnings
-from utils import Term_data, Partition, clean_name, get_name_map,aa_redux_dict
+from utils import Term_data, Partition, Polymorphs, clean_name, get_name_map,aa_redux_dict
 
 help_text = """
 
@@ -58,7 +58,8 @@ OPTIONS:
 -o	Outgroup(s) for rooting trees.
 
 -t	Folder containing data matrices in tsv format, encapsulating ortholog 
-	duplication encoding.
+	duplication encoding. Polymorphic encodings should have states separated by 
+	pipes (`|`).
 
 """
 
@@ -161,10 +162,11 @@ if len(infiles) > 0 and len(root_name) > 0:
 	non_informative_partitions = []
 	final_spp_count = 0
 	part_collection = {'size': [], 'type': [], 'states': []}
+	polys = Polymorphs()
 
 	for file in act_files:
 
-		partition = Partition(file, name_map, translation_dict)
+		partition = Partition(file, name_map, translation_dict, polys)
 
 		if code_indels and partition.filetype == 'fasta':
 			partition.indel_coder()
@@ -215,7 +217,8 @@ if len(infiles) > 0 and len(root_name) > 0:
 		with open(thfile, "a") as oh:
 			oh.write(header)
 		for sp in spp_data:
-			spp_data[sp].parse_phylip_block(thfile, name_space = (longest + 10), partition_type=settype)
+			spp_data[sp].parse_phylip_block(thfile, name_space = (longest + 10), 
+				partition_type=settype, polymorphs=polys)
 
 	# Write IQtree nexus file
 	with open(iqtree_nexus, 'w') as iqhandle:
@@ -253,7 +256,7 @@ if len(infiles) > 0 and len(root_name) > 0:
 	with open(raxml_main, "a") as oh:
 		oh.write(raxml_header)
 	for sp in spp_data:
-		spp_data[sp].parse_phylip_block(raxml_main, name_space = (longest + 10))
+		spp_data[sp].parse_phylip_block(raxml_main, name_space = (longest + 10), polymorphs=polys)
 
 
 	# Write RAxML partition file
@@ -289,8 +292,8 @@ if len(infiles) > 0 and len(root_name) > 0:
 
 
 	# Remove temporary files
-	for name in spp_data:
-		spp_data[name].clean()
+	#for name in spp_data:
+	#	spp_data[name].clean()
 
 else:
 

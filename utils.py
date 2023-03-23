@@ -27,6 +27,51 @@ prot_amb_codes = {
 	'Z': ['E', 'Q']
 }
 
+nucl2numb = {
+	'A': '0',
+	'C': '1',
+	'G': '2',
+	'T': '3',
+	'R': '[02]', # ['A' , 'G'],
+	'Y': '[13]', # ['C' , 'T'],
+	'S': '[12]', # ['G' , 'C'],
+	'W': '[03]', # ['A' , 'T'],
+	'K': '[23]', # ['G' , 'T'],
+	'M': '[01]', # ['A' , 'C'],
+	'B': '[123]', # ['C' , 'G' , 'T'],
+	'D': '[023]', # ['A' , 'G' , 'T'],
+	'H': '[013]', # ['A' , 'C' , 'T'],
+	'V': '[012]', # ['A' , 'C' , 'G'],
+	'N': '?', # ['A' , 'C' , 'G' , 'T']
+}
+
+pep2numb = {
+	'A': '0', 
+	'C': '1', 
+	'D': '2', 
+	'E': '3', 
+	'F': '4', 
+	'G': '5', 
+	'H': '6', 
+	'I': '7', 
+	'K': '8', 
+	'L': '9', 
+	'M': 'A', 
+	'N': 'B', 
+	'P': 'C', 
+	'Q': 'D', 
+	'R': 'E', 
+	'S': 'F', 
+	'T': 'G', 
+	'V': 'H', 
+	'W': 'I', 
+	'Y': 'J',
+	'B': '[2B]', # ['D', 'N'], 
+	'J': '[79]', # ['I', 'L'], 
+	'Z': '[3D]', # ['E', 'Q']
+	'X': '?'
+}
+
 def get_name_map(infiles: List[str], full_fasta_names: bool, keep: float = 1.0, 
 		 infiles_morph: List[str] = []) -> dict:
 
@@ -204,9 +249,33 @@ def aa_redux_dict(redux_code: str) -> Dict[str, str]:
 
 	return trans_dict
 
+
+class Polymorphs:
+
+	def __init__(self):
+		"""
+		Simple map to keep record of TNTN polymorphic encodings. 
+		"""
+		self.counter = 130
+		self.mapping = {}
+
+	def add_poly_encoding(self, poly_str: str):
+		"""
+		Adds a new TNT polymorphic encoding into the morphological partition.
+		First and last characters should be square brackets. Returns a single 
+		unicode character that will be inserted in the phylip-like, temporary 
+		storing file the script handles in the background.
+		"""
+		thchar = chr(self.counter)
+		self.counter += 1
+		self.mapping[thchar] = poly_str
+		return thchar
+
+
 class Partition:
 
-	def __init__(self, filename: str, name_map: dict, translation_dict: dict=None):
+	def __init__(self, filename: str, name_map: dict, translation_dict: dict=None,
+		polymorphs: Polymorphs=None):
 
 		self.data = {}
 		self.filetype = None
@@ -279,6 +348,8 @@ class Partition:
 
 				types['morphological'] = 0
 				charset = set()
+				state_translations = {} # { character : { original state : new state } }
+				max_state = [] # count of states per character (starts at zero)
 
 				for line_idx, line in enumerate(fhandle):
 					line = line.strip()
@@ -287,14 +358,47 @@ class Partition:
 						self.metadata["character_names"] = re.split(r'\t', line)[1:]
 
 					else:
-						#! No polymorphisms
 						bits = re.split(r'\t', line)
+						th_seq = ''
 						char_lens[len(bits[1:])] = 0
-
 						if len(char_lens.keys()) > 1:
 							raise ValueError(f"OTUs in {filename} have different character observations, check for missing data.")
+
+						#######################  TODO  ########################## 
+						# Test this polymophism aware block
+						for ichar, char in enumerate(bits[1:]):
+							if not ichar in state_translations:
+								state_translations[ichar] = {}
+								max_state.append(0)
+							tidbits = re.split(r'\|', char)
+							#print(f'{tidbits=}')
+							if len(tidbits) > 1: #polymorphic
+								#print("It is polymorphic")
+								warnings.warn(f"File `{self.origin}` contains polymorphisms. They will be encoded as missing data in the phylip matrix.")
+								poly = '['
+								for sta in tidbits:
+									if not sta in state_translations[ichar]:
+										state_translations[ichar][sta] = str(max_state[ichar])
+										max_state[ichar] += 1
+									poly += state_translations[ichar][sta]
+								poly += ']'
+								single_char = polymorphs.add_poly_encoding(poly)
+								th_seq += single_char
+							else:
+								#print("It is not polymorphic")
+								#print(f'{char=}')
+								if '?' != char:
+									if not char in state_translations[ichar]:
+										state_translations[ichar][char] = str(max_state[ichar])
+										max_state[ichar] += 1
+									#print(f'{state_translations=}')
+									th_seq += state_translations[ichar][char]
+								else:
+									th_seq += '?'
+
+						# TODO ===================================================
 						th_term = name_map[bits[0]]
-						th_seq = ''.join(bits[1:])
+						#th_seq = ''.join(bits[1:])
 						charset.update(set(th_seq))
 						self.data[th_term] = th_seq
 
@@ -302,8 +406,10 @@ class Partition:
 				if '?' in charset:
 					charset.remove('?')
 				
-				if charset != set([str(x) for x in range(len(charset))]):
-					raise ValueError('Morphological states are not encoded as strict number sequence starting at zero.')
+				#? Why is this necessary ~~> Remove
+				#if charset != set([str(x) for x in range(len(charset))]):
+				#	raise ValueError('Morphological states are not encoded as strict number sequence starting at zero.')
+				#? #################################
 				
 				self.metadata['states'].append(len(charset))
 
@@ -533,7 +639,7 @@ class Term_data:
 	
 
 	def parse_phylip_block(self, outfile: str, name_space: int = 20, 
-		partition_type: str = 'all'):
+		partition_type: str = 'all', polymorphs: Polymorphs = None):
 
 		if partition_type == 'all':
 			partition_type = ['nucleic', 'peptidic','indel', 'morphological']
@@ -557,7 +663,12 @@ class Term_data:
 							end = init + isize
 
 							if self.metadata["type"][ipart] in partition_type:
-								ohandle.write(data[init:end])
+								tmp = data[init:end]
+								for poly_symbol in polymorphs.mapping:
+									tmp = re.sub(poly_symbol, '?', tmp)
+								#ohandle.write(re.sub(r'\[\w+\]', '?', data[init:end]))
+								#ohandle.write(data[init:end])
+								ohandle.write(tmp)
 
 						else:
 							if self.metadata["type"][ipart] in partition_type: # write missing data
