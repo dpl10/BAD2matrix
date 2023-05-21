@@ -254,7 +254,7 @@ class Polymorphs:
 
 	def __init__(self):
 		"""
-		Simple map to keep record of TNTN polymorphic encodings. 
+		Simple map to keep record of TNT polymorphic encodings. 
 		"""
 		self.counter = 130
 		self.mapping = {}
@@ -264,7 +264,7 @@ class Polymorphs:
 		Adds a new TNT polymorphic encoding into the morphological partition.
 		First and last characters should be square brackets. Returns a single 
 		unicode character that will be inserted in the phylip-like, temporary 
-		storing file the script handles in the background.
+		storing file that the script handles in the background.
 		"""
 		thchar = chr(self.counter)
 		self.counter += 1
@@ -637,6 +637,10 @@ class Term_data:
 		if os.path.exists(self.file):
 			os.remove(self.file)
 	
+	def parse_tnt_block(self, outfile: str, name_space: int = 20, 
+		polymorphs: Polymorphs = None):
+		########  TODO  #########
+		pass
 
 	def parse_phylip_block(self, outfile: str, name_space: int = 20, 
 		partition_type: str = 'all', polymorphs: Polymorphs = None):

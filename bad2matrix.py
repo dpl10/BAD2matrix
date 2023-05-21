@@ -58,8 +58,8 @@ OPTIONS:
 -o	Outgroup(s) for rooting trees.
 
 -t	Folder containing data matrices in tsv format, encapsulating ortholog 
-	duplication encoding. Polymorphic encodings should have states separated by 
-	pipes (`|`).
+	duplication encoding. Polymorphic encodings should use pipes (`|`) to 
+	separate states.
 
 """
 
@@ -292,8 +292,8 @@ if len(infiles) > 0 and len(root_name) > 0:
 
 
 	# Remove temporary files
-	#for name in spp_data:
-	#	spp_data[name].clean()
+	for name in spp_data:
+		spp_data[name].clean()
 
 else:
 
