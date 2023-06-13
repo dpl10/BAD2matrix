@@ -290,6 +290,7 @@ if len(infiles) > 0 and len(root_name) > 0:
 
 		ph.write(partinfo)
 
+	# Write xread file
 
 	# Remove temporary files
 	for name in spp_data:

@@ -364,8 +364,8 @@ class Partition:
 						if len(char_lens.keys()) > 1:
 							raise ValueError(f"OTUs in {filename} have different character observations, check for missing data.")
 
-						#######################  TODO  ########################## 
-						# Test this polymophism aware block
+						#######################  polymorphsm block  ########################## 
+
 						for ichar, char in enumerate(bits[1:]):
 							if not ichar in state_translations:
 								state_translations[ichar] = {}
@@ -396,7 +396,8 @@ class Partition:
 								else:
 									th_seq += '?'
 
-						# TODO ===================================================
+						#######################  polymorphsm block  ########################## 
+
 						th_term = name_map[bits[0]]
 						#th_seq = ''.join(bits[1:])
 						charset.update(set(th_seq))
