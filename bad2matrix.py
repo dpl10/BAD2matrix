@@ -155,6 +155,7 @@ if len(infiles) > 0 and len(root_name) > 0:
 	raxml_main = root_name + '.phy'
 	raxml_part = root_name + '.part'
 	iqtree_nexus = root_name + '.nex'
+	tnt_main = root_name + '.ss'
 	(name_map, act_files) = get_name_map(infiles, full_fasta_names, keep_percentile, infiles_morph)
 	term_names = sorted(list(set(name_map.values()))) #? Why sort should be done in reverse order?
 	longest = len(max(term_names, key = len))
@@ -291,6 +292,18 @@ if len(infiles) > 0 and len(root_name) > 0:
 		ph.write(partinfo)
 
 	# Write xread file
+
+	tnt_header = f"'xread file processed with BAD2matrix.'\n{tot_size} {len(spp_data)}\n"
+	
+	with open(tnt_main, 'w') as tnt_handle:
+		tnt_handle.write(tnt_header)
+
+	for sp in spp_data:
+		spp_data[sp].parse_tnt_block(tnt_main, name_space = (longest + 10), polymorphs=polys)
+
+	with open(tnt_main, 'a') as tnt_handle:
+		tnt_handle.write(';\n')
+
 
 	# Remove temporary files
 	for name in spp_data:

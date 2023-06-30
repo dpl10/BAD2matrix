@@ -638,10 +638,53 @@ class Term_data:
 		if os.path.exists(self.file):
 			os.remove(self.file)
 	
-	def parse_tnt_block(self, outfile: str, name_space: int = 20, 
-		polymorphs: Polymorphs = None):
+	def parse_tnt_block(self, outfile: str, name_space: int = 20, polymorphs: Polymorphs = None):
+
 		########  TODO  #########
-		pass
+
+		with open(outfile, 'a') as outhandle:
+			pad = name_space - len(self.name)
+			outhandle.write(self.name + " " * pad)
+
+			with open(self.file, 'r') as inhandle:		
+
+				for data in inhandle:
+					init = 0
+					end = 0
+				
+					for ipart, isize in enumerate(self.metadata["size"]):
+
+						if self.metadata["presence"][ipart]: 
+							init = end
+							end = init + isize
+							tmp = data[init:end]
+							transdict = None
+
+							if self.metadata['type'][ipart] == 'nucleic':
+								transdict = nucl2numb
+
+							elif self.metadata['type'][ipart] == 'peptidic':
+								transdict = pep2numb
+							
+							if transdict:
+								for mol in transdict:
+									tmp = re.sub(mol, transdict[mol], tmp)
+							
+							if not polymorphs is None:
+								for poly_symbol in polymorphs.mapping:
+									tmp = re.sub(poly_symbol, polymorphs.mapping[poly_symbol], tmp)
+
+							tmp = re.sub(r'\-', '?', tmp)
+
+							outhandle.write(tmp)
+
+						else:
+							outhandle.write("?" * self.metadata["size"][ipart])
+
+			outhandle.write('\n')
+
+
+
 
 	def parse_phylip_block(self, outfile: str, name_space: int = 20, 
 		partition_type: str = 'all', polymorphs: Polymorphs = None):
