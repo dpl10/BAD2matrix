@@ -274,6 +274,18 @@ class Polymorphs:
 
 class Partition:
 
+#TODO###########################################################################
+
+#TODO		- Make state_translations an attribute of Partition class, but save
+#TODO		the data if it is actual morphological data, not if it is ortholog
+#TODO		duplication encodings.
+
+#TODO		- Create a method in Term_data class to retrieve state_translations
+#TODO		from a Partition and write the tnt char set names block
+
+#TODO###########################################################################
+
+
 	def __init__(self, filename: str, name_map: dict, translation_dict: dict=None,
 		polymorphs: Polymorphs=None):
 
@@ -290,7 +302,8 @@ class Partition:
 			"character_names": [],
 			"states" : []
 			}
-		#TODO==> Include name in metadata <==
+		
+		#TODO######   Include name in metadata   ###########
 
 		if re.search(r'\.(fas|fasta)$', self.origin):
 			self.filetype = 'fasta'
@@ -406,14 +419,8 @@ class Partition:
 				#Checking proper state conventions
 				if '?' in charset:
 					charset.remove('?')
-				
-				#? Why is this necessary ~~> Remove
-				#if charset != set([str(x) for x in range(len(charset))]):
-				#	raise ValueError('Morphological states are not encoded as strict number sequence starting at zero.')
-				#? #################################
-				
+								
 				self.metadata['states'].append(len(charset))
-
 
 		types = list(set(types.keys()))
 		self.metadata["size"].append(list(char_lens.keys())[0])
@@ -429,8 +436,10 @@ class Partition:
 			self.metadata["type"].append("morphological")
 
 		else:
-			raise ValueError('WTF')  #<<=== Raise the appropriate error here |==>>
 
+			#TODO ########    Raise the appropriate error here    ##############
+
+			raise ValueError('WTF')
 
 		# Peptidic state reduction
 		if translation_dict and self.metadata["type"][-1] == "peptidic":
@@ -610,6 +619,7 @@ class Term_data:
 		self.metadata = {"size": [], "type": [], "informative_chars": [], "presence": []} #, "origin": []}
 		self.size = 0
 
+
 	def feed(self, part: Partition):
 		
 		tot_inf = len(reduce(lambda x, y: x + y, part.metadata["informative_chars"]))
@@ -638,9 +648,8 @@ class Term_data:
 		if os.path.exists(self.file):
 			os.remove(self.file)
 	
-	def parse_tnt_block(self, outfile: str, name_space: int = 20, polymorphs: Polymorphs = None):
 
-		########  TODO  #########
+	def parse_tnt_block(self, outfile: str, name_space: int = 20, polymorphs: Polymorphs = None):
 
 		with open(outfile, 'a') as outhandle:
 			pad = name_space - len(self.name)
@@ -666,7 +675,7 @@ class Term_data:
 							elif self.metadata['type'][ipart] == 'peptidic':
 								transdict = pep2numb
 							
-							if transdict:
+							if transdict: # Translate aaa or nucleic seq to TNT numbers
 								for mol in transdict:
 									tmp = re.sub(mol, transdict[mol], tmp)
 							
@@ -674,16 +683,13 @@ class Term_data:
 								for poly_symbol in polymorphs.mapping:
 									tmp = re.sub(poly_symbol, polymorphs.mapping[poly_symbol], tmp)
 
-							tmp = re.sub(r'\-', '?', tmp)
-
+							tmp = re.sub(r'\-', '?', tmp) # Just to have all missing data as '?' 
 							outhandle.write(tmp)
 
 						else:
 							outhandle.write("?" * self.metadata["size"][ipart])
 
 			outhandle.write('\n')
-
-
 
 
 	def parse_phylip_block(self, outfile: str, name_space: int = 20, 
