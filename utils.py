@@ -90,7 +90,7 @@ def get_name_map(infiles: List[str], full_fasta_names: bool, keep: float = 1.0,
 		thname_map = {}
 		file2terms[file] = []
 
-		if re.search(r'\.(fas|fasta)$', file):
+		if re.search(r'\.(fas|fasta|fna)$', file, re.I):
 			file_type = 'fasta'
 		elif re.search(r'\.tsv$', file):
 			file_type = 'tsv'
@@ -305,7 +305,7 @@ class Partition:
 		
 		#TODO######   Include name in metadata   ###########
 
-		if re.search(r'\.(fas|fasta)$', self.origin):
+		if re.search(r'\.(fas|fasta|fna)$', self.origin, re.I):
 			self.filetype = 'fasta'
 
 		elif re.search(r'\.tsv$', self.origin):
@@ -322,7 +322,7 @@ class Partition:
 				
 				for line in fhandle:
 					line = line.strip()
-
+					#print(f'{line=}')
 					if line.startswith('>'):
 
 						if th_term and th_seq:
@@ -421,6 +421,8 @@ class Partition:
 					charset.remove('?')
 								
 				self.metadata['states'].append(len(charset))
+
+		#print(f'{char_lens=}')
 
 		types = list(set(types.keys()))
 		self.metadata["size"].append(list(char_lens.keys())[0])
