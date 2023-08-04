@@ -17,7 +17,7 @@ This script is slower than 2matrix.pl due to more disk use, but will not run out
 of RAM (hopefully). The RAxML .part file is either in original RAxML (-r) or
 RAxML-NG format.
 
-USAGE:	python bsd2matrix.py [ -a 2|3|4|5|6|6dso|6kgb|6sr|8|10|11|12|15|18|20 ]
+USAGE:	python bad2matrix.py [ -a 2|3|4|5|6|6dso|6kgb|6sr|8|10|11|12|15|18|20 ]
 	-d <directory> [ -f ] [ -g ] [ -i ] [ -m int ] -n <root-name>
 	[ -o speciesA,speciesB... ] [ -t <directory> ]
 
