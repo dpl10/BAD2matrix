@@ -31,7 +31,7 @@ python bad2matrix.py -d <directory> -n <root-name> [ -a 2|3|4|5|6|6dso|6kgb|6sr|
 ./BAD2matrix.pl -d test-data -f -g -n test -o Callitris_preisii_var._preisii,Callitris_sp.,Widdringtonia_nodiflora
 ```
 
-### Sitation
+### Citation
 If you use this software, please cite: Little & Salinas. 2023. BAD2matrix: better phylogenomic matrix production: concatenation; indel coding; gene content coding; reduced amino acid alphabets; occupancy filtering.
 
 ### license
