@@ -7,19 +7,17 @@ from utils import Term_data, Partition, Polymorphs, clean_name, get_name_map,aa_
 
 help_text = """
 
-A Python script for merging and translating FASTA alignments into TNT extended
-XREAD, FastTree FASTA, and RAxML/IQ-Tree extended PHYLIP with indel characters
-(optionally, .tnt & .phy) coded using the 'simple' gap coding method of Simmons
+A Python script for merging and translating FASTA alignments into TNT (extended
+XREAD) and RAxML-NG/IQ-Tree (extended PHYLIP) input matrices. Optionally, it 
+encodes indel characters using the 'simple' gap coding method of Simmons
 and Ochoterena (2000; Gaps as characters in sequence-based phylogenetic
-analysis. Systematic Biology 49: 369-381. DOI 10.1080/10635159950173889), and
-with coded gene content (absence/presence) characters (optionally, .tnt & .phy).
-This script is slower than 2matrix.pl due to more disk use, but will not run out
-of RAM (hopefully). The RAxML .part file is either in original RAxML (-r) or
-RAxML-NG format.
+analysis. Systematic Biology 49: 369-381. DOI 10.1080/10635159950173889), and 
+gene content as binary characters (absence/presence). This script is slower than 
+2matrix.pl due to more disk use, but will not run out of RAM (hopefully). 
 
 USAGE:	python bad2matrix.py [ -a 2|3|4|5|6|6dso|6kgb|6sr|8|10|11|12|15|18|20 ]
 	-d <directory> [ -f ] [ -g ] [ -i ] [ -m int ] -n <root-name>
-	[ -o speciesA,speciesB... ] [ -t <directory> ]
+	[ -t <directory> ]
 
 OPTIONS:
 -a	Number of amino acid states (default = 20). Reduction with option '6dso'
@@ -55,8 +53,6 @@ OPTIONS:
 
 -n	<root-name> for output files.
 
--o	Outgroup(s) for rooting trees.
-
 -t	Folder containing data matrices in tsv format, encapsulating ortholog 
 	duplication encoding. Polymorphic encodings should use pipes (`|`) to 
 	separate states.
@@ -73,7 +69,6 @@ infiles_morph = []
 term_names = []
 name_map = {}
 code_indels = True
-outgroups = []
 aa_encoding = "20"
 code_gene_content = True
 keep_percentile = 1
@@ -112,9 +107,6 @@ for iar,ar in enumerate(sys.argv):
 
 	elif ar == '-n':
 		root_name = sys.argv[iar+1]
-
-	elif ar == '-o':
-		outgroups = [clean_name(x) for x in sys.argv[iar+1].split(',')]
 
 	elif ar == '-r':
 		part_file = 1

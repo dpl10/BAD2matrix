@@ -1,17 +1,17 @@
 # BAD2matrix
-merging and translating FASTA alignments into TNT, FastTree, and RAxML/IQ-Tree with indel and gene content characters
+
+Merging and translating FASTA alignments into TNT, RAxML-NG, and IQ-Tree data matrices, coding indel and gene content as binary characters.
 
 ### Install
+
 Simply clone the Github repository or download the zip version. A Python 3 interpreter is required.
 
 ### Use
 
 ```bash
 python bad2matrix.py -d <directory> -n <root-name> [ -a 2|3|4|5|6|6dso|6kgb|6sr|8|10|11|12|15|18|20 ] 
-[ -f ] [ -g ] [ -i ] [ -m int ] [ -o speciesA,speciesB... ] [ -t <directory> ]
+[ -f ] [ -g ] [ -i ] [ -m int ] [ -t <directory> ]
 ```
-
-
 
 | option flag | description | required |
 | --- | --- | --- |
@@ -22,20 +22,31 @@ python bad2matrix.py -d <directory> -n <root-name> [ -a 2|3|4|5|6|6dso|6kgb|6sr|
 | -i | Do not code indels. If this flag is not set, indels are coded using simple indel coding following [Simmons and Ochoterena (2000)](https://doi.org/10.1080/10635159950173889). | no |
 | -m <i>x</i> | Retain the upper <i>x</i> percentile of genes in the distribution of missing sequences. By default <i>x</i> = 1 (i.e. include all genes with four or more sequences). | no |
 | -n <i>root–name</i> | Specify the root–name for output files. | yes |
-| -o <i>list,of,terminals</i> | Specify a comma delimited list of terminals to use for rooting trees. If not specified, the first (alphabetically) is used. | no |
 | -r _path_ | Folder containing a morphological matrix or a set of ortholog duplication matrices. Datasets should be saved a tsv tables. Multiple states should be separated by pipes (‘\|’) in the case of a polymorphic character. | no |
 <i>Italicized text following option flags should be specified by the user.</i>
 
 ### Sample input/output
+
 ```bash
-./BAD2matrix.pl -d test-data -f -g -n test -o Callitris_preisii_var._preisii,Callitris_sp.,Widdringtonia_nodiflora
+python bad2matrix.py -d test-data/fastas -f -g -n test
 ```
 
 ### Citation
-If you use this software, please cite: Little & Salinas. 2023. BAD2matrix: better phylogenomic matrix production: concatenation; indel coding; gene content coding; reduced amino acid alphabets; occupancy filtering.
+If you use this software, please cite: 
+> Little, D. P. & N. R. Salinas. 2023. BAD2matrix: better phylogenomic matrix concatenation, indel coding, gene content coding, reduced amino acid alphabets, and occupancy filtering. Software distributed by the authors.
 
-### license
+### License
+
 [GPL2](https://github.com/dpl10/BAD2matrix/blob/master/LICENSE)
 
-### related repositories
+### Related repositories
+
 * [2matrix](https://github.com/nrsalinas/2matrix)
+
+### Contact
+
+Nelson R. Salinas  
+nrsalinas@gmail.com
+
+Damon P. Little  
+dlittle@nybg.org
