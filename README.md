@@ -4,7 +4,7 @@ A script to merge and translate FASTA alignments into TNT, RAxML-NG, and IQ-Tree
 
 ### Install
 
-Simply clone the Github repository or download the zip version. A Python 3 interpreter is required.
+Simply clone the GitHub repository or download the zip version. A Python 3 interpreter is required.
 
 ### Use
 
