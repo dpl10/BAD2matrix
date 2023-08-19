@@ -296,7 +296,7 @@ class Partition:
 		
 		self.metadata = { # Describes "subpartitions"
 			"size": [], # Char length
-			"type": [], # Char types: `nucleic`, `peptidic`, `indel`, `morphological`
+			"type": [], # Char types: `nucleic`, `peptidic`, `indel`, `morphological`, `gene_content`
 			"informative_chars": [], # Number of Informative positions
 			#"origin": [filename], 
 			"character_names": [],
@@ -615,11 +615,12 @@ class Partition:
 class Term_data:
 	"""Simple class for aggregated DNA/AA data of a terminal"""
 	
-	def __init__(self, name: str):
+	def __init__(self, name: str, gene_encoding: bool):
 		self.name = name
 		self.file = "temporary_file_for_" + self.name + "_do_not_delete_or_you_will_die.txt"
 		self.metadata = {"size": [], "type": [], "informative_chars": [], "presence": []} #, "origin": []}
 		self.size = 0
+		self.gene_encoding = gene_encoding
 
 
 	def feed(self, part: Partition):
@@ -729,7 +730,18 @@ class Term_data:
 						else:
 							if self.metadata["type"][ipart] in partition_type: # write missing data
 								ohandle.write("-" * self.metadata["size"][ipart])
+			#"""
+			if self.gene_encoding:
 
+				for tipo, present in zip(self.metadata['type'], self.metadata['presence']):
+				
+					if tipo == 'nucleic' or tipo == 'peptidic':
+				
+						if present:
+							ohandle.write('X')
+						else:
+							ohandle.write('|')
+			#"""
 			ohandle.write('\n')
 
 

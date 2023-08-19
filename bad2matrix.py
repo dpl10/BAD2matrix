@@ -151,7 +151,7 @@ if len(infiles) > 0 and len(root_name) > 0:
 	(name_map, act_files) = get_name_map(infiles, full_fasta_names, keep_percentile, infiles_morph)
 	term_names = sorted(list(set(name_map.values()))) #? Why sort should be done in reverse order?
 	longest = len(max(term_names, key = len))
-	spp_data = {name: Term_data(name) for name in term_names}
+	spp_data = {name: Term_data(name, code_gene_content) for name in term_names}
 	non_informative_partitions = []
 	final_spp_count = 0
 	part_collection = {'size': [], 'type': [], 'states': []}
@@ -179,7 +179,6 @@ if len(infiles) > 0 and len(root_name) > 0:
 			part_collection['type'] += partition.metadata['type']
 			part_collection['states'] += partition.metadata['states']
 
-	#print(f'{part_collection=}')
 
 	# remove uninformative files and spp 
 	if not code_indels:
@@ -194,8 +193,34 @@ if len(infiles) > 0 and len(root_name) > 0:
 	spp_data = {sp: spp_data[sp] for sp in spp_data if 
 				len([x for x in spp_data[sp].metadata["presence"] if x]) > 0}
 	
-	#for spe in spp_data:
-	#	print(f'{spp_data[spe].metadata=}')
+	#for sp in spp_data:
+	#	print(sp, spp_data[sp].metadata['type'], spp_data[sp].metadata['presence'])
+
+	if code_gene_content:
+		gene_number = 0
+
+		for isp, sp in enumerate(spp_data):
+			if isp == 0:
+				for tipo in spp_data[sp].metadata['type']:			
+					if tipo == 'nucleic' or tipo == 'peptidic':
+						gene_number += 1
+
+			spp_data[sp].metadata['type'].append('gene_content')
+			spp_data[sp].metadata['size'].append(gene_number)
+			
+			#TODO count informative characters
+			spp_data[sp].metadata["informative_chars"].append([1]) # Dummy value
+			
+			spp_data[sp].metadata["presence"].append(True)
+
+		part_collection['size'].append(gene_number)
+		part_collection['type'].append('gene_content')
+		part_collection['states'].append(2)
+
+	print(f'{part_collection=}')
+
+	for spe in spp_data:
+		print(f'{spp_data[spe].metadata=}')
 
 	# Write IQtree phylip files
 	iqtree_sets = set(part_collection['type'])
@@ -206,17 +231,20 @@ if len(infiles) > 0 and len(root_name) > 0:
 		th_sizes = [part_collection['size'][d] for d in range(len(part_collection['size'])) 
 				if part_collection['type'][d] == settype]
 		tot_size = sum(th_sizes)
+		
 		header = f" {len(spp_data)} {tot_size} \n"
 		with open(thfile, "a") as oh:
 			oh.write(header)
 		for sp in spp_data:
 			spp_data[sp].parse_phylip_block(thfile, name_space = (longest + 10), 
 				partition_type=settype, polymorphs=polys)
+			
+	
 
 	# Write IQtree nexus file
 	with open(iqtree_nexus, 'w') as iqhandle:
 		#init = 0
-		init = {'nucleic':0, 'peptidic':0, 'indel':0, 'morphological':0} 
+		init = {'nucleic':0, 'peptidic':0, 'indel':0, 'morphological':0, 'gene_content': 0} 
 		partinfo = "#nexus\nbegin sets;\n"
 		model_spec = "\tcharpartition mine = "
 
@@ -233,6 +261,9 @@ if len(infiles) > 0 and len(root_name) > 0:
 
 			elif thtype == 'morphological':
 				model_spec += f'MK:part{ix+1}, '
+							
+			elif thtype == 'gene_content':
+				model_spec += f'GTR2:part{ix+1}, '
 							
 			partinfo += f"\tcharset part{ix+1} = {root_name}_{thtype}.phy: {init[thtype]+1}-{init[thtype] + part_collection['size'][ix]};\n"
 			init[thtype] += part_collection['size'][ix]
