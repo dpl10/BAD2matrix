@@ -699,7 +699,7 @@ class Term_data:
 		partition_type: str = 'all', polymorphs: Polymorphs = None):
 
 		if partition_type == 'all':
-			partition_type = ['nucleic', 'peptidic','indel', 'morphological']
+			partition_type = ['nucleic', 'peptidic','indel', 'morphological', 'gene_content']
 		else:
 			partition_type = [partition_type]
 
@@ -730,7 +730,7 @@ class Term_data:
 						else:
 							if self.metadata["type"][ipart] in partition_type: # write missing data
 								ohandle.write("-" * self.metadata["size"][ipart])
-			#"""
+			"""
 			if self.gene_encoding:
 
 				for tipo, present in zip(self.metadata['type'], self.metadata['presence']):
@@ -741,7 +741,7 @@ class Term_data:
 							ohandle.write('X')
 						else:
 							ohandle.write('|')
-			#"""
+			"""
 			ohandle.write('\n')
 
 

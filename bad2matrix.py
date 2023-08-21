@@ -200,17 +200,22 @@ if len(infiles) > 0 and len(root_name) > 0:
 		gene_number = 0
 
 		for isp, sp in enumerate(spp_data):
-			if isp == 0:
-				for tipo in spp_data[sp].metadata['type']:			
-					if tipo == 'nucleic' or tipo == 'peptidic':
-						gene_number += 1
+
+			with open (spp_data[sp].file, 'a') as fhandle:
+				for tipo, present in zip(spp_data[sp].metadata['type'], spp_data[sp].metadata['presence']):
+					if tipo == 'nucleic' or tipo == 'peptidic':				
+						if present:
+							fhandle.write('X')
+						else:
+							fhandle.write('|')
+
+						if isp == 0:
+							gene_number += 1
 
 			spp_data[sp].metadata['type'].append('gene_content')
-			spp_data[sp].metadata['size'].append(gene_number)
-			
-			#TODO count informative characters
+			spp_data[sp].metadata['size'].append(gene_number)			
+			#TODO count informative characters in gene content
 			spp_data[sp].metadata["informative_chars"].append([1]) # Dummy value
-			
 			spp_data[sp].metadata["presence"].append(True)
 
 		part_collection['size'].append(gene_number)
@@ -299,7 +304,7 @@ if len(infiles) > 0 and len(root_name) > 0:
 			elif thtype == 'indel':
 				partinfo += 'BIN, '
 
-			elif thtype == 'morphological':
+			elif thtype == 'morphological' or thtype == 'gene_content':
 				states = part_collection['states'][ix]
 				
 				if states == 2:
@@ -307,7 +312,7 @@ if len(infiles) > 0 and len(root_name) > 0:
 				elif states > 2:
 					partinfo += f"MULTI{states}_GTR, "
 				else:
-					raise ValueError("Morphological partition is uninformative.")
+					raise ValueError(f"{thtype.capitalize()} partition is uninformative.")
 			
 			partinfo += f"p{ix+1} = {init+1}-{init + part_collection['size'][ix]}\n"
 			init += part_collection['size'][ix]
