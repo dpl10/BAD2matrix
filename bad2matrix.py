@@ -198,34 +198,51 @@ if len(infiles) > 0 and len(root_name) > 0:
 
 	if code_gene_content:
 		gene_number = 0
+		inf_chars = []
+		state_counts = {}
 
 		for isp, sp in enumerate(spp_data):
+			counter = 0
 
 			with open (spp_data[sp].file, 'a') as fhandle:
 				for tipo, present in zip(spp_data[sp].metadata['type'], spp_data[sp].metadata['presence']):
-					if tipo == 'nucleic' or tipo == 'peptidic':				
+					if tipo == 'nucleic' or tipo == 'peptidic':
+						
+						if isp == 0:
+							state_counts[counter] = {0:0, 1:0}
+
 						if present:
-							fhandle.write('X')
+							fhandle.write('1')
+							state_counts[counter][1] += 1
+						
 						else:
-							fhandle.write('|')
+							fhandle.write('0')
+							state_counts[counter][0] += 1
 
 						if isp == 0:
 							gene_number += 1
-
+						
+						counter += 1
+			
 			spp_data[sp].metadata['type'].append('gene_content')
 			spp_data[sp].metadata['size'].append(gene_number)			
 			#TODO count informative characters in gene content
-			spp_data[sp].metadata["informative_chars"].append([1]) # Dummy value
+			spp_data[sp].metadata["informative_chars"].append(inf_chars) # Dummy value
 			spp_data[sp].metadata["presence"].append(True)
+
+		for char in state_counts:
+			#print(f'{char=} - {state_counts[char]=}')
+			if min(list(state_counts[char].values())) > 1: # informative
+				inf_chars.append(char)
 
 		part_collection['size'].append(gene_number)
 		part_collection['type'].append('gene_content')
 		part_collection['states'].append(2)
 
-	print(f'{part_collection=}')
+	#print(f'{part_collection=}')
 
-	for spe in spp_data:
-		print(f'{spp_data[spe].metadata=}')
+	#for spe in spp_data:
+	#	print(f'{spp_data[spe].metadata=}')
 
 	# Write IQtree phylip files
 	iqtree_sets = set(part_collection['type'])
