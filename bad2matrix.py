@@ -6,8 +6,102 @@ from functools import reduce
 from itertools import combinations
 from typing import List, Dict
 
+documentation = {
 
-help_text = """
+	'Preamble': 'A Python script for merging and translating FASTA alignments into TNT (extended XREAD) and RAxML-NG/IQ-Tree (extended PHYLIP) input matrices. Optionally, it encodes indel characters using the `simple` gap coding method of Simmons and Ochoterena (2000; Gaps as characters in sequence-based phylogenetic analysis. Systematic Biology 49: 369-381. DOI 10.1080/10635159950173889), and gene content as binary characters (absence/presence). This script is slower than 2matrix.pl due to more disk use, but will not run out of RAM (hopefully).',
+
+	'Installation': 'Simply clone the GitHub repository or download the main script (`bad2matrix.py`). A Python 3 interpreter is required.',
+
+	'Usage': {
+		'command': 'python bad2matrix.py -d <directory> -n <root-name> [-a 2|3|4|5|6|6dso|6kgb|6sr|8|10|11|12|15|18|20] [-f] [-g] [-i] [-m int] [-t <directory>]',
+
+		'options':{
+			'-a': 'Number of amino acid states (default = 20). Reduction with option `6dso` follows [Dayhoff et al. (1978)](http://chagall.med.cornell.edu/BioinfoCourse/PDFs/Lecture2/Dayhoff1978.pdf); option `6kgb` follows [Kosiol et al. (2004)](https://doi.org/10.1016/j.jtbi.2003.12.010); option `6sr` follows [Susko and Roger (2007)](https://doi.org/10.1093/molbev/msm144); option `11` follows [Buchfink et al. (2015)](https://doi.org/10.1038/nmeth.3176); and all other options follow [Murphy et al. (2000)](https://doi.org/10.1093/protein/13.3.149).',
+			
+			'-d': 'The input directory of aligned FASTA files. The default behavior aggregates sequences of the same species across partitions, in which case names should use the following convention: `>species#sequenceID`. This implies that a species can be represented by only one read within each FASTA file. Characters other than letters, numbers, periods, and underscores will be deleted. Use `-f` for an alternate naming convention.',
+			
+			'-f': 'Use full FASTA names rather than default settings (see `-d` description for default). Sequences from the same species but different reads will not be aggregated and will be considered distinct OTUs. Characters other than letters, numbers, periods, and underscores will be deleted.',
+			
+			'-g': 'Do not code gene content (absence/presence). If this flag is not set, gene content is coded.',
+			
+			'-i': 'Do not code indels. If this flag is not set, indels are coded using simple indel coding following [Simmons and Ochoterena (2000)](https://doi.org/10.1080/10635159950173889).',
+			
+			'-m': 'Retain the upper `x` percentile of genes in the distribution of missing sequences. By default `x` = 1 (i.e. include all genes with four or more sequences).',
+			
+			'-n': 'Specify the root-name for output files.',
+			
+			'-r': 'Folder containing a morphological matrix or a set of ortholog duplication matrices. Datasets should be saved a .tsv tables. Multiple states (polymorphic characters) should be separated by pipes (`|`).'
+
+			}
+	},
+
+	'Sample input/output': 'python bad2matrix.py -d test-data/fastas -f -g -n test',
+
+	'Citation':  'Little, D. P. & N. R. Salinas. 2023. BAD2matrix: better phylogenomic matrix concatenation, indel coding, gene content coding, reduced amino acid alphabets, and occupancy filtering. Software distributed by the authors.',
+
+	'License': '[GPL2](https://github.com/dpl10/BAD2matrix/blob/master/LICENSE)',
+
+	'Related repositories': '[2matrix](https://github.com/nrsalinas/2matrix)',
+
+	'Contact':{
+		'Nelson R. Salinas': [ 
+        	'nrsalinas@gmail.com', 
+    		'New York Botanical Garden'
+		],
+
+		'Damon P. Little' : [
+			'dlittle@nybg.org', 
+			'New York Botanical Garden'
+		]
+	}	
+}
+
+def justify(text, tab_number, text_width):
+	out = ''
+	tabbies = '\t' * tab_number
+	out += tabbies
+	thwidth = 0
+	breakme = False
+
+	for ichar, char in enumerate(text):
+		#print(ichar, char)
+		thwidth += 1
+
+		if thwidth % text_width == 0:
+			breakme = True
+
+		if breakme and char == ' ':
+			out += '\n' + tabbies
+			breakme = False
+			thwidth = 0
+
+		else:
+			out += char
+
+	#for i in range(0, len(text), text_width):
+	#	tabbies = '\t' * tab_number
+	#	out += f'{tabbies}{text[i:(i+text_width)]}\n'
+
+	return out
+
+def get_cli_help():
+	out = '\nbad2matrix.py\n\n'
+	preamble_formatted = justify(documentation['Preamble'], 0, 80)
+	out += preamble_formatted + '\n\n'
+	out += 'USAGE\n\n'
+	cl_formatted = justify(documentation['Usage']['command'], 1, 76)
+	out += f"{cl_formatted}\n\n"
+	out += 'WHERE\n\n'
+	for opt, exp in documentation['Usage']['options'].items():
+		exp_formatted = justify(exp, 1, 76)
+		out += f'{opt}{exp_formatted}\n\n'
+	
+	citation_formatted = justify(documentation['Citation'], 0, 80)
+	out += f"Citation: {citation_formatted}\n\n"
+	
+	return out
+
+help_text_ = """
 
 A Python script for merging and translating FASTA alignments into TNT (extended
 XREAD) and RAxML-NG/IQ-Tree (extended PHYLIP) input matrices. Optionally, it 
@@ -307,6 +401,112 @@ def aa_redux_dict(redux_code: str) -> Dict[str, str]:
 	return trans_dict
 
 
+def min_steps_char(count_dict, char_type):
+	
+	min_steps = None
+	
+	if char_type in ['nucleic', 'peptidic']:
+		stand_states = None
+		projector = None
+
+		if char_type == 'nucleic':
+			stand_states = ['A', 'C', 'G', 'T']
+			projector = nucl_amb_codes
+		elif char_type == 'peptidic':
+			stand_states = ['A', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'K', 'L', 
+				'M', 'N', 'P', 'Q', 'R', 'S', 'T', 'V', 'W', 'Y']
+			projector = prot_amb_codes
+
+		proj_states = {x for x in count_dict if x in stand_states}
+		ambs = {x for x in count_dict if not x in stand_states}
+		
+		# Check if ambiguities are already represented in projected set
+		to_rm = []
+		for amb in ambs:
+			thset = set(projector[amb])
+			inter = proj_states & thset
+			if len(inter) > 0:
+				to_rm.append(amb)
+		ambs = {x for x in ambs if not x in to_rm}
+
+		# Check if two ambiguities have common aa/nucleotide
+		# ===>> What if there is only one amb left? <<==
+		l0 = 0
+		l1 = 1
+		while len(ambs) > 1 and l0 != l1:
+			l0 = len(ambs)
+			to_rm = []
+			for i,d in combinations(ambs, 2):
+				iset = set(projector[i])
+				dset = set(projector[d])
+				inter = iset & dset
+				if len(inter) > 0:
+					proj_states.update(next(iter(inter)))
+					to_rm += [i, d]
+					break
+			ambs = {x for x in ambs if not x in to_rm}
+			l1 = len(ambs)
+
+		# Just add the non-empathetic ambiguities
+		for amb in ambs:
+			proj_states.update(next(iter(amb)))
+
+		min_steps = len(proj_states) - 1
+
+	else:
+		min_steps = len(count_dict) - 1
+
+	return min_steps
+
+
+def max_steps_char(count_dict, char_type):
+
+	max_steps = None
+
+	if char_type in ['nucleic', 'peptidic']:
+		stand_states = None
+		projector = None
+
+		if char_type == 'nucleic':
+			stand_states = ['A', 'C', 'G', 'T']
+			projector = nucl_amb_codes
+		elif char_type == 'peptidic':
+			stand_states = ['A', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'K', 'L', 
+				'M', 'N', 'P', 'Q', 'R', 'S', 'T', 'V', 'W', 'Y']
+			projector = prot_amb_codes
+
+		count_dict = {x: count_dict[x] for x in sorted(count_dict, reverse=True, key=lambda y: count_dict[y])}
+		new_count = {x: count_dict[x] for x in count_dict if x in stand_states} #stand_states?
+		ambs = {x: count_dict[x] for x in count_dict if not x in stand_states}
+
+		to_rm = [0]
+		while len(to_rm) > 0:
+			to_rm = []
+			break_ext = False
+			for amb in ambs:
+				for sym in new_count:
+					if sym in projector[amb]:
+						new_count[sym] += ambs[amb]
+						to_rm.append(amb)
+						break_ext = True
+						break
+				if break_ext: break	
+			ambs = {x: ambs[x] for x in ambs if not x in to_rm}
+
+		if len(ambs) > 0:
+			new_count.update(ambs)
+			new_count = {x: new_count[x] for x in sorted(new_count, reverse=True, key=lambda y: new_count[y])}
+
+		max_steps = sum(list(new_count.values())[1:])
+
+	else:
+		count_dict = {x: count_dict[x] for x in sorted(count_dict, reverse=True, key=lambda y: count_dict[y])}
+
+		max_steps = sum(list(count_dict.values())[1:])
+
+	return max_steps
+
+
 class Polymorphs:
 
 	def __init__(self):
@@ -332,14 +532,14 @@ class Polymorphs:
 class Partition:
 
 #TODO###########################################################################
-
-#TODO		- Make state_translations an attribute of Partition class, but save
-#TODO		the data if it is actual morphological data, not if it is ortholog
-#TODO		duplication encodings.
-
-#TODO		- Create a method in Term_data class to retrieve state_translations
-#TODO		from a Partition and write the tnt char set names block
-
+#
+#		- Make state_translations an attribute of Partition class, but save
+#		the data if it is actual morphological data, not if it is ortholog
+#		duplication encodings.
+#
+#		- Create a method in Term_data class to retrieve state_translations
+#		from a Partition and write the tnt char set names block
+#
 #TODO###########################################################################
 
 
@@ -802,111 +1002,6 @@ class Term_data:
 			ohandle.write('\n')
 
 
-def min_steps_char(count_dict, char_type):
-	
-	min_steps = None
-	
-	if char_type in ['nucleic', 'peptidic']:
-		stand_states = None
-		projector = None
-
-		if char_type == 'nucleic':
-			stand_states = ['A', 'C', 'G', 'T']
-			projector = nucl_amb_codes
-		elif char_type == 'peptidic':
-			stand_states = ['A', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'K', 'L', 
-				'M', 'N', 'P', 'Q', 'R', 'S', 'T', 'V', 'W', 'Y']
-			projector = prot_amb_codes
-
-		proj_states = {x for x in count_dict if x in stand_states}
-		ambs = {x for x in count_dict if not x in stand_states}
-		
-		# Check if ambiguities are already represented in projected set
-		to_rm = []
-		for amb in ambs:
-			thset = set(projector[amb])
-			inter = proj_states & thset
-			if len(inter) > 0:
-				to_rm.append(amb)
-		ambs = {x for x in ambs if not x in to_rm}
-
-		# Check if two ambiguities have common aa/nucleotide
-		# ===>> What if there is only one amb left? <<==
-		l0 = 0
-		l1 = 1
-		while len(ambs) > 1 and l0 != l1:
-			l0 = len(ambs)
-			to_rm = []
-			for i,d in combinations(ambs, 2):
-				iset = set(projector[i])
-				dset = set(projector[d])
-				inter = iset & dset
-				if len(inter) > 0:
-					proj_states.update(next(iter(inter)))
-					to_rm += [i, d]
-					break
-			ambs = {x for x in ambs if not x in to_rm}
-			l1 = len(ambs)
-
-		# Just add the non-empathetic ambiguities
-		for amb in ambs:
-			proj_states.update(next(iter(amb)))
-
-		min_steps = len(proj_states) - 1
-
-	else:
-		min_steps = len(count_dict) - 1
-
-	return min_steps
-
-
-def max_steps_char(count_dict, char_type):
-
-	max_steps = None
-
-	if char_type in ['nucleic', 'peptidic']:
-		stand_states = None
-		projector = None
-
-		if char_type == 'nucleic':
-			stand_states = ['A', 'C', 'G', 'T']
-			projector = nucl_amb_codes
-		elif char_type == 'peptidic':
-			stand_states = ['A', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'K', 'L', 
-				'M', 'N', 'P', 'Q', 'R', 'S', 'T', 'V', 'W', 'Y']
-			projector = prot_amb_codes
-
-		count_dict = {x: count_dict[x] for x in sorted(count_dict, reverse=True, key=lambda y: count_dict[y])}
-		new_count = {x: count_dict[x] for x in count_dict if x in stand_states} #stand_states?
-		ambs = {x: count_dict[x] for x in count_dict if not x in stand_states}
-
-		to_rm = [0]
-		while len(to_rm) > 0:
-			to_rm = []
-			break_ext = False
-			for amb in ambs:
-				for sym in new_count:
-					if sym in projector[amb]:
-						new_count[sym] += ambs[amb]
-						to_rm.append(amb)
-						break_ext = True
-						break
-				if break_ext: break	
-			ambs = {x: ambs[x] for x in ambs if not x in to_rm}
-
-		if len(ambs) > 0:
-			new_count.update(ambs)
-			new_count = {x: new_count[x] for x in sorted(new_count, reverse=True, key=lambda y: new_count[y])}
-
-		max_steps = sum(list(new_count.values())[1:])
-
-	else:
-		count_dict = {x: count_dict[x] for x in sorted(count_dict, reverse=True, key=lambda y: count_dict[y])}
-
-		max_steps = sum(list(count_dict.values())[1:])
-
-	return max_steps
-
 
 
 
@@ -1208,7 +1303,7 @@ if __name__ == '__main__':
 			spp_data[name].clean()
 
 	else:
-
+		help_text = get_cli_help()
 		print(help_text)
 
 
