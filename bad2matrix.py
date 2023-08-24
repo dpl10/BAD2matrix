@@ -101,60 +101,8 @@ def get_cli_help():
 	
 	return out
 
-help_text_ = """
 
-A Python script for merging and translating FASTA alignments into TNT (extended
-XREAD) and RAxML-NG/IQ-Tree (extended PHYLIP) input matrices. Optionally, it 
-encodes indel characters using the 'simple' gap coding method of Simmons
-and Ochoterena (2000; Gaps as characters in sequence-based phylogenetic
-analysis. Systematic Biology 49: 369-381. DOI 10.1080/10635159950173889), and 
-gene content as binary characters (absence/presence). This script is slower than 
-2matrix.pl due to more disk use, but will not run out of RAM (hopefully). 
-
-USAGE:	python bad2matrix.py [ -a 2|3|4|5|6|6dso|6kgb|6sr|8|10|11|12|15|18|20 ]
-	-d <directory> [ -f ] [ -g ] [ -i ] [ -m int ] -n <root-name>
-	[ -t <directory> ]
-
-OPTIONS:
--a	Number of amino acid states (default = 20). Reduction with option '6dso'
-	follows Dayhoff, Schwartz, and Orcutt (1978. A model of evolutionary
-	change in proteins. In Atlas of Protein Sequence and Structure, Dayhoff
-	ed. pp. 345-352); option '6kgb' follows Kosiol, Goldman, and Buttimore
-	(2004. A new criterion and method for amino acid classification. Journal
-	of Theoretical Biology 228:97-106. DOI 10.1016/j.jtbi.2003.12.010);
-	option '6sr' follows Susko and Roger (2007. On reduced amino acid
-	alphabets for phylogenetic inference. Molecular Biology and Evolution 24:
-	2139-2150. DOI 10.1093/molbev/msm144); option '11' follows Buchfink, Xie,
-	and Huson (2015. Fast and sensitive protein alignment using DIAMOND.
-	Nature Methods 12: 59-60. DOI 10.1038/nmeth.3176); and all other options
-	follow Murphy, Wallqvist, and Levy (2000. Simplified amino acid alphabets
-	for protein fold recognition and implications for folding. Protein
-	Engineering 13: 149-52. DOI 10.1093/protein/13.3.149).
-
--d	Specifies a directory of aligned FASTA files. By default, names should
-	use the OrthologID naming convention ('>species#sequenceID').
-	Characters other than letters, numbers, periods, and underscores will be
-	deleted. Use -f for an alternate naming convention.
-
--f	Use full FASTA names. Characters other than letters, numbers, periods,
-	and underscores will be deleted. Default is the species root name: the 
-	string before the first sharp ('#').
-
--g	Do NOT code gene content.
-
--i	Do NOT code indels.
-
--m	Retain the upper x percentile of genes in the distribution of missing
-	sequences (default = 1; i.e. include all genes).
-
--n	<root-name> for output files.
-
--t	Folder containing data matrices in tsv format, encapsulating ortholog 
-	duplication encoding. Polymorphic encodings should use pipes (`|`) to 
-	separate states.
-
-"""
-
+# Handy data dictionaries
 
 nucl_amb_codes = {
 	'R': ['A' , 'G'],
