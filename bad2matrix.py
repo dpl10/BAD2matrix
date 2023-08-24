@@ -102,7 +102,9 @@ def get_cli_help():
 	return out
 
 
-# Handy data dictionaries
+# Handy data dictionaries/lists
+
+valid_fasta_ext = ['fa', 'fasta', 'fan']
 
 nucl_amb_codes = {
 	'R': ['A' , 'G'],
@@ -188,8 +190,9 @@ def get_name_map(infiles: List[str], full_fasta_names: bool, keep: float = 1.0,
 		file_type = None
 		thname_map = {}
 		file2terms[file] = []
+		pattern = '|'.join(valid_fasta_ext)
 
-		if re.search(r'\.(fas|fasta|fna)$', file, re.I):
+		if re.search(f'\.({pattern})$', file, re.I):
 			file_type = 'fasta'
 		elif re.search(r'\.tsv$', file):
 			file_type = 'tsv'
@@ -497,7 +500,6 @@ class Partition:
 		self.data = {}
 		self.filetype = None
 		self.origin = filename
-
 		
 		self.metadata = { # Describes "subpartitions"
 			"size": [], # Char length
@@ -510,7 +512,8 @@ class Partition:
 		
 		#TODO######   Include name in metadata   ###########
 
-		if re.search(r'\.(fas|fasta|fna)$', self.origin, re.I):
+		pattern = '|'.join(valid_fasta_ext)
+		if re.search(f'\.({pattern})$', self.origin, re.I):
 			self.filetype = 'fasta'
 
 		elif re.search(r'\.tsv$', self.origin):
