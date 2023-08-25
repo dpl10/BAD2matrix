@@ -1043,10 +1043,10 @@ if __name__ == '__main__':
 		#TODO Check if output files already exist
 
 		translation_dict = aa_redux_dict(aa_encoding)
-		raxml_main = root_name + '.phy'
-		raxml_part = root_name + '.part'
-		iqtree_nexus = root_name + '.nex'
-		tnt_main = root_name + '.ss'
+		raxml_main = os.path.join('raxml_datasets', f'{root_name}.phy')
+		raxml_part = os.path.join('raxml_datasets', f'{root_name}.part')
+		iqtree_nexus = os.path.join('iqtree_datasets', f'{root_name}.nex')
+		tnt_main = os.path.join('tnt_datasets', f'{root_name}.ss')
 		(name_map, act_files) = get_name_map(infiles, full_fasta_names, keep_percentile, infiles_morph)
 		term_names = sorted(list(set(name_map.values()))) #? Why sort should be done in reverse order?
 		longest = len(max(term_names, key = len))
@@ -1143,12 +1143,15 @@ if __name__ == '__main__':
 		#for spe in spp_data:
 		#	print(f'{spp_data[spe].metadata=}')
 
+		if not os.path.exists('iqtree_datasets'):
+			os.mkdir('iqtree_datasets')
+
 		# Write IQtree phylip files
 		iqtree_sets = set(part_collection['type'])
 
 		for settype in iqtree_sets:
 
-			thfile = f'{root_name}_{settype}.phy'
+			thfile = f'iqtree_datasets/{root_name}_{settype}.phy'
 			th_sizes = [part_collection['size'][d] for d in range(len(part_collection['size'])) 
 					if part_collection['type'][d] == settype]
 			tot_size = sum(th_sizes)
@@ -1196,6 +1199,10 @@ if __name__ == '__main__':
 
 
 		# Write RAxML single phylip matrix
+
+		if not os.path.exists('raxml_datasets'):
+			os.mkdir('raxml_datasets')
+
 		tot_size = sum(part_collection['size'])
 		raxml_header = f" {len(spp_data)} {tot_size} \n"
 		with open(raxml_main, "a") as oh:
@@ -1236,6 +1243,9 @@ if __name__ == '__main__':
 			ph.write(partinfo)
 
 		# Write xread file
+
+		if not os.path.exists('tnt_datasets'):
+			os.mkdir('tnt_datasets')
 
 		tnt_header = f"'xread file processed with BAD2matrix.'\n{tot_size} {len(spp_data)}\n"
 		
