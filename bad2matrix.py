@@ -35,6 +35,8 @@ documentation = {
 			}
 	},
 
+	'Input specification': 'The program only accepts alignments in fasta format, and their file extensions should be `fa`, `fas`, or `fasta`. Alignments should also be located in a single folder, which path is parsed with the option `-d`.\n\nOther kind of data (v. gr., a morphological matrix or multiple ortholog encoding tables) can also be concatenated. The first row of each table should contain the character names, and the first column the names of the terminals. These matrices should be saved as tab-separated values: simple text tables with tabs as column separators and `tsv` extension. These tables should be located in a single directory, which is parsed with the option `-r`. Polymorphisms should be separated by pipes (`|`): `leaves_pinnate|leaves_bipinnate`. Be aware that polymorphisms are only fully supported for the TNT output, they will be encoded as missing data in the rest of output datasets.',
+
 	'Sample input/output': 'python bad2matrix.py -d test-data/fastas -f -g -n test',
 
 	'Citation':  'Little, D. P. & N. R. Salinas. 2023. BAD2matrix: better phylogenomic matrix concatenation, indel coding, gene content coding, reduced amino acid alphabets, and occupancy filtering. Software distributed by the authors.',

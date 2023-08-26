@@ -1,5 +1,5 @@
 import os
-import utils
+from bad2matrix import get_name_map, clean_name, Partition, Term_data
 
 infiles = ['alg_test_0.fasta', 'alg_test_1.fasta', 'alg_test_2.fasta']
 
@@ -54,7 +54,7 @@ def test_name_map():
 
 	assert tc == ['alg_test_0.fasta', 'alg_test_1.fasta', 'alg_test_2.fasta']
 
-	mn, tc = utils.get_name_map(infiles, False)
+	mn, tc = get_name_map(infiles, False)
 	assert mn == {
 		'>sp0#sample0': 'sp0',
 		'>sp1#sample0': 'sp1',
@@ -66,7 +66,7 @@ def test_name_map():
 	}
 	assert tc == ['alg_test_0.fasta', 'alg_test_1.fasta', 'alg_test_2.fasta']
 
-	mn, tc = utils.get_name_map(infiles, False, 0.8)
+	mn, tc = get_name_map(infiles, False, 0.8)
 	assert mn == {
 		'>sp0#sample0': 'sp0',
 		'>sp1#sample0': 'sp1',
@@ -76,7 +76,7 @@ def test_name_map():
 		'>sp4#sample0': 'sp4'
 	}
 
-	mn, tc = utils.get_name_map(infiles, True, 0.4)
+	mn, tc = get_name_map(infiles, True, 0.4)
 	assert mn == {
 		'>sp0#sample0': 'sp0_sample0',
 		'>sp1#sample0': 'sp1_sample0',
@@ -85,15 +85,15 @@ def test_name_map():
 	}
 
 def test_clean_name():
-	assert utils.clean_name(">sp3#sample|*0-sub  subsample") == "sp3_sample0_sub_subsample"
-	assert utils.clean_name("sample.valid..name_0") == "sample.valid..name_0"
+	assert clean_name(">sp3#sample|*0-sub  subsample") == "sp3_sample0_sub_subsample"
+	assert clean_name("sample.valid..name_0") == "sample.valid..name_0"
 
 
 name_map, term_count = utils.get_name_map(infiles, False)
 
 def test_partition_instant():
-	part0 = utils.Partition(infiles[0], name_map)
-	part1 = utils.Partition(infiles[1], name_map)
+	part0 = Partition(infiles[0], name_map)
+	part1 = Partition(infiles[1], name_map)
 
 	assert list(part0.data.keys()) == ['sp0', 'sp1', 'sp2', 'sp3']
 
@@ -107,9 +107,9 @@ def test_partition_instant():
 	assert part1.data['sp4'] == 'CTTCGCTGCAT--ATTACGATC-ATTCTCCATGAATGATAATCTAGTTTTAGTTAAGAATATTTGCAGAAATCTCTGATT'
 
 
-part0 = utils.Partition(infiles[0], name_map)
+part0 = Partition(infiles[0], name_map)
 part0.indel_coder()
-part1 = utils.Partition(infiles[1], name_map)
+part1 = Partition(infiles[1], name_map)
 part1.indel_coder()
 
 def test_partition_indel():
@@ -185,9 +185,9 @@ def test_term_data():
 		(80, 'nucleic', [5, 53, 78], True),
 		(3, 'indel', [0], True)]
 
-sp0dat = utils.Term_data('sp0')
-sp3dat = utils.Term_data('sp3')
-sp4dat = utils.Term_data('sp4')
+sp0dat = Term_data('sp0')
+sp3dat = Term_data('sp3')
+sp4dat = Term_data('sp4')
 
 def test_final_cleanup():
 
