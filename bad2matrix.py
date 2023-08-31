@@ -8,7 +8,7 @@ from typing import List, Dict
 
 documentation = {
 
-	'Preamble': 'A Python script for merging and translating FASTA alignments into TNT (extended XREAD) and RAxML-NG/IQ-Tree (extended PHYLIP) input matrices. Optionally, it encodes indel characters using the `simple` gap coding method of Simmons and Ochoterena (2000; Gaps as characters in sequence-based phylogenetic analysis. Systematic Biology 49: 369-381. DOI 10.1080/10635159950173889), and gene content as binary characters (absence/presence). This script is slower than 2matrix.pl due to more disk use, but will not run out of RAM (hopefully).',
+	'Preamble': 'A Python script for merging and translating FASTA alignments into TNT (extended XREAD), RAxML-NG/IQ-Tree (extended PHYLIP) and FastTree (fasta) input matrices. Optionally, it encodes indel characters using the `simple` gap coding method of Simmons and Ochoterena (2000; Gaps as characters in sequence-based phylogenetic analysis. Systematic Biology 49: 369-381. DOI 10.1080/10635159950173889), and gene content as binary characters (absence/presence). This script is slower than 2matrix.pl due to more disk use, but will not run out of RAM (hopefully).',
 
 	'Installation': 'Simply clone the GitHub repository or download the main script (`bad2matrix.py`). A Python 3 interpreter is required.',
 
