@@ -956,6 +956,37 @@ class Term_data:
 
 
 
+	def parse_fasta_block(self, outfile: str, polymorphs: Polymorphs = None):
+
+		partition_type = ['nucleic', 'peptidic']
+
+		with open(outfile, 'a') as ohandle:
+			ohandle.write(f'>{self.name}\n')
+
+			with open(self.file, 'r') as ihandle:
+					
+				for data in ihandle:
+					init = 0
+					end = 0
+				
+					for ipart, isize in enumerate(self.metadata["size"]):
+
+						if self.metadata["presence"][ipart]: 
+							init = end
+							end = init + isize
+
+							if self.metadata["type"][ipart] in partition_type:
+								tmp = data[init:end]
+								for poly_symbol in polymorphs.mapping:
+									tmp = re.sub(poly_symbol, '-', tmp)
+								ohandle.write(tmp)
+
+						else:
+							if self.metadata["type"][ipart] in partition_type: # write missing data
+								ohandle.write("-" * self.metadata["size"][ipart])
+
+			ohandle.write('\n')
+
 
 
 
@@ -1045,6 +1076,7 @@ if __name__ == '__main__':
 		#TODO Check if output files already exist
 
 		translation_dict = aa_redux_dict(aa_encoding)
+		fasttree_main = os.path.join('fasttree_datasets', f'{root_name}.fasta')
 		raxml_main = os.path.join('raxml_datasets', f'{root_name}.phy')
 		raxml_part = os.path.join('raxml_datasets', f'{root_name}.part')
 		iqtree_nexus = os.path.join('iqtree_datasets', f'{root_name}.nex')
@@ -1198,6 +1230,13 @@ if __name__ == '__main__':
 			partinfo += model_spec + ';\nend;\n'
 			iqhandle.write(partinfo)
 
+
+		# Write FastTree fasta matrix
+		if not os.path.exists('fasttree_datasets'):
+			os.mkdir('fasttree_datasets')
+
+		for sp in spp_data:
+			spp_data[sp].parse_fasta_block(fasttree_main, polymorphs=polys)
 
 
 		# Write RAxML single phylip matrix
