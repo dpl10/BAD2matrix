@@ -24,7 +24,7 @@ Cupressus_dupreziana                 110010000???????????01212111211211111[01][0
 Cupressus_forbesii                   00110[01]1101?0001011010122122021111011[01][01][01]01----------2??????????1???122[34]010110001???11102[346][01]
 Cupressus_funebris                   11[01]0111101?00010010001[12]1211121121111[01]0[01][01]11111[01]011102?000??1111?[35]12122[34]0[01]000000[01]1111110220
 Cupressus_gigantea                   1???????????????????0?221[12]202111111[01]11101----------??00????????[135]??122[4567]000010000???1?1?220
-Cupressus_glabra                     10[01][01]1????1?0001011010122122021111[01]11[01][01][01]0[01]----------21??????1000[1234]1[23]122[345]010110001???11102[3456][12]
+Cupressus_glabra                     10[01][01]1????1?0001011010122122021111[01]11[01][01][01]0[01]----------21??????1000[1234]1[23]122[345]010110001???11102[3456][01]
 Cupressus_goveniana                  1[01]0[01]111[01]01?1111101000122122021111011[01]0[01]01----------2000????1011[234]13122[345]0[01]0110001???11102[34]0
 Cupressus_guadalupensis              10[01]1011101?000101101012212202111101[01][01][01][01]01----------2?00????????[23456]?3122[3456]0[01]0110001???11102?0
 Cupressus_jiangeensis                11001???????????????0?2[12]211121121111111[01]10-111[01]1[01]10??00????????[4567]??122[56]00?0[01]???????1?1????
@@ -39,8 +39,8 @@ Cupressus_sempervirens               11001110010000100100012[12][12]21[01]211[12
 Cupressus_stephensonii               10110????10000100101012[12]122021111011[01][01][01]0[01]----------21?????????1[13456]??122[345]010110001???11102[34]0
 Cupressus_tonkinensis                1???????????????????0?21211[01]211211111[01]10[01]1111[01][01]10[01]0???????????????1?2300?0????????1?10???
 Cupressus_torulosa                   1100111101100010111001[12][12]1[12][12]021111[01][01]11[01]101----------200001011?1?[12345]13122[3456]0[01]0[01][01]000[01]?111110220
-Fokienia_hodginsii                   110010[19]10??????????0001121112202100---0010-0---10110?001100011???2122[56]0010000001110111122
-Juniperus_californica                [01]1001111000000000000012212203111101111100----------????????101????1[23][23]3000101-10???000-1[3456]?
+Fokienia_hodginsii                   110010[01]10??????????0001121112202100---0010-0---10110?001100011???2122[56]0010000001110111122
+Juniperus_californica                [01]1001111000000000000012212203111101111100----------????????101????1[12][23]3000101-10???000-1[3456]?
 Juniperus_coahuilensis               [01]1001???????????????01221220211110111[01]100----------????????????[123]??12320[01]0101-10???000-???
 Juniperus_communis                   000[01]1111011?011001001--------------------------------------[01]1[01]?[234]12--31100101-1-111000-[23]20
 Juniperus_conferta                   010011100???????????1--------------------------------------111?2??--3[12][01]0[01]101-1[01]???000-22?
@@ -78,7 +78,7 @@ cn {0 TRUNK multiple_stems a_single_stem;
 {10 TROPOLONE:_ALPHA-TUJAPLICIN absent present;
 {11 TROPOLONE:_ALPHA-THUJAPLICINOL absent present;
 {12 TROPOLONE:_ALPHA-DOLABRINOL absent present;
-{13 TROPOLONE:_PYGMÄIN absent present;
+{13 TROPOLONE:_PYGM absent present;
 {14 TROPOLONE:_BETA-THUJAPLICIN absent present;
 {15 TROPOLONE:_BETA-DOLABRIN absent present;
 {16 TROPOLONE:_BETA-THUJAPLICINOL absent present;
@@ -141,7 +141,7 @@ cn {0 TRUNK multiple_stems a_single_stem;
 {73 OVULATE_CONE_SCALES open_upon_seed_maturation remain_alive_and_closed_after_seed_maturation_(serotinous);
 {74 OVULATE_CONES_ARE_ABSCISED upon_maturity after_an_extended_period;
 {75 EDGES_OF_FEMALE_CONE_SCALES_UPON_SEED_MATURATION with_elongate_inflated_cells fused_to_the_neighboring_scale;
-{76 INFLATED/ELONGATE_INTERLOCKING_CELLS at_edge_of_female_cone_scales on_face_of_female_cone_scales;
+{76 INFLATED-ELONGATE_INTERLOCKING_CELLS at_edge_of_female_cone_scales on_face_of_female_cone_scales;
 {77 MAXIMUM_NUMBER_OF_SEEDS_PER_SCALE more_than_one one;
 {78 TERMINAL_FEMALE_CONE_SCALES not_bearing_seeds bearing_seeds;
 {79 MEGAGAMETOPHYTE / monosporic / / tetrasporic;
