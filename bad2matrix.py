@@ -1004,7 +1004,6 @@ if __name__ == '__main__':
 	aa_encoding = "20"
 	code_gene_content = True
 	keep_percentile = 1
-	part_file = 0
 	tsv_file = None
 	raxml_bffr = ""
 
@@ -1041,9 +1040,6 @@ if __name__ == '__main__':
 			root_name = sys.argv[iar+1]
 
 		elif ar == '-r':
-			part_file = 1
-
-		elif ar == '-t':
 			if os.path.exists(sys.argv[iar+1]):
 				in_dir_morph = sys.argv[iar+1]
 			else:
@@ -1057,7 +1053,8 @@ if __name__ == '__main__':
 	if in_dir_morph:
 		for d, s, f in os.walk(in_dir_morph):
 			for file in f:
-				infiles_morph.append(os.path.join(d,file))
+				if file.endswith('.tsv'):
+					infiles_morph.append(os.path.join(d,file))
 
 		if len(infiles_morph) == 0:
 			raise ValueError("Input directory (-t) does not contain any files!")
