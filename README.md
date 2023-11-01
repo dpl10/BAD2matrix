@@ -39,7 +39,7 @@ python bad2matrix.py -d test-data/fastas -f -g -n test
 
 Little, D. P. & N. R. Salinas. 2023. BAD2matrix: better phylogenomic matrix concatenation, indel coding, gene content coding, reduced amino acid alphabets, and occupancy filtering. Software distributed by the authors.
 
-[![DOI](https://zenodo.org/badge/dpl10.svg)](https://zenodo.org/badge/10.5281/zenodo.10028408/dpl10)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.10028408.svg)](https://doi.org/10.5281/zenodo.10028408)
 
 ### License
 
