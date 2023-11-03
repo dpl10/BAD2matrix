@@ -1,6 +1,8 @@
 # BAD2matrix
 
-A Python script for merging and translating FASTA alignments into TNT (extended XREAD) and RAxML-NG/IQ-Tree (extended PHYLIP) input matrices. Optionally, it encodes indel characters using the `simple` gap coding method of Simmons and Ochoterena (2000; Gaps as characters in sequence-based phylogenetic analysis. Systematic Biology 49: 369-381. DOI 10.1080/10635159950173889), and gene content as binary characters (absence/presence). This script is slower than 2matrix.pl due to more disk use, but will not run out of RAM (hopefully).
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.10028408.svg)](https://doi.org/10.5281/zenodo.10028408)
+
+A Python script for merging and translating FASTA alignments into TNT (extended XREAD), RAxML-NG/IQ-Tree (extended PHYLIP) and FastTree (fasta) input matrices. Optionally, it encodes indel characters using the `simple` gap coding method of Simmons and Ochoterena (2000; Gaps as characters in sequence-based phylogenetic analysis. Systematic Biology 49: 369-381. DOI 10.1080/10635159950173889), and gene content as binary characters (absence/presence). This script is slower than 2matrix.pl due to more disk use, but will not run out of RAM (hopefully).
 
 ### Installation
 
@@ -21,7 +23,7 @@ python bad2matrix.py -d <directory> -n <root-name> [-a 2|3|4|5|6|6dso|6kgb|6sr|8
 -i | Do not code indels. If this flag is not set, indels are coded using simple indel coding following [Simmons and Ochoterena (2000)](https://doi.org/10.1080/10635159950173889).
 -m | Retain the upper `x` percentile of genes in the distribution of missing sequences. By default `x` = 1 (i.e. include all genes with four or more sequences).
 -n | Specify the root-name for output files.
--r | Folder containing a morphological matrix or a set of ortholog duplication matrices. Datasets should be saved a .tsv tables. Multiple states (polymorphic characters) should be separated by pipes (`|`).
+-r | Folder containing a morphological matrix or a set of ortholog duplication matrices. Datasets should be saved a .tsv tables. Multiple states (polymorphic characters) should be separated by pipes (`\|`).
 
 ### Input specification
 
@@ -37,9 +39,7 @@ python bad2matrix.py -d test-data/fastas -f -g -n test
 
 ### Citation
 
-Little, D. P. & N. R. Salinas. 2023. BAD2matrix: better phylogenomic matrix concatenation, indel coding, gene content coding, reduced amino acid alphabets, and occupancy filtering. Software distributed by the authors.
-
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.10028408.svg)](https://doi.org/10.5281/zenodo.10028408)
+Little, D. P. & N. R. Salinas. 2023. BAD2matrix: better phylogenomic matrix concatenation, indel coding, gene content coding, reduced amino acid alphabets, and occupancy filtering. Software distributed by the authors. DOI: 10.5281/zenodo.10028408.
 
 ### License
 

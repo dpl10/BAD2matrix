@@ -2,6 +2,8 @@ from bad2matrix import documentation
 
 accu = '# BAD2matrix\n\n'
 
+accu += documentation.pop('DOI') + '\n\n'
+
 for heading in documentation:
     
 	if heading != 'Preamble':

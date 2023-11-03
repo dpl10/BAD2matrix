@@ -8,6 +8,8 @@ from typing import List, Dict
 
 documentation = {
 
+	'DOI': '[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.10028408.svg)](https://doi.org/10.5281/zenodo.10028408)',
+
 	'Preamble': 'A Python script for merging and translating FASTA alignments into TNT (extended XREAD), RAxML-NG/IQ-Tree (extended PHYLIP) and FastTree (fasta) input matrices. Optionally, it encodes indel characters using the `simple` gap coding method of Simmons and Ochoterena (2000; Gaps as characters in sequence-based phylogenetic analysis. Systematic Biology 49: 369-381. DOI 10.1080/10635159950173889), and gene content as binary characters (absence/presence). This script is slower than 2matrix.pl due to more disk use, but will not run out of RAM (hopefully).',
 
 	'Installation': 'Simply clone the GitHub repository or download the main script (`bad2matrix.py`). A Python 3 interpreter is required.',
@@ -30,7 +32,7 @@ documentation = {
 			
 			'-n': 'Specify the root-name for output files.',
 			
-			'-r': 'Folder containing a morphological matrix or a set of ortholog duplication matrices. Datasets should be saved a .tsv tables. Multiple states (polymorphic characters) should be separated by pipes (`|`).'
+			'-r': 'Folder containing a morphological matrix or a set of ortholog duplication matrices. Datasets should be saved a .tsv tables. Multiple states (polymorphic characters) should be separated by pipes (`\|`).'
 
 			}
 	},
@@ -39,7 +41,7 @@ documentation = {
 
 	'Sample input/output': 'python bad2matrix.py -d test-data/fastas -f -g -n test',
 
-	'Citation':  'Little, D. P. & N. R. Salinas. 2023. BAD2matrix: better phylogenomic matrix concatenation, indel coding, gene content coding, reduced amino acid alphabets, and occupancy filtering. Software distributed by the authors.',
+	'Citation':  'Little, D. P. & N. R. Salinas. 2023. BAD2matrix: better phylogenomic matrix concatenation, indel coding, gene content coding, reduced amino acid alphabets, and occupancy filtering. Software distributed by the authors. DOI: 10.5281/zenodo.10028408.',
 
 	'License': '[GPL2](https://github.com/dpl10/BAD2matrix/blob/master/LICENSE)',
 
