@@ -29,7 +29,7 @@ python bad2matrix.py -d <directory> -n <root-name> [-a 2|3|4|5|6|6dso|6kgb|6sr|8
 
 The program only accepts alignments in fasta format, and their file extensions should be `fa`, `fas`, or `fasta`. Alignments should also be located in a single folder, which path is parsed with the option `-d`.
 
-Other kind of data (v. gr., a morphological matrix or multiple ortholog encoding tables) can also be concatenated. The first row of each table should contain the character names, and the first column the names of the terminals. These matrices should be saved as tab-separated values: simple text tables with tabs as column separators and `tsv` extension. These tables should be located in a single directory, which is parsed with the option `-r`. Polymorphisms should be separated by pipes (`|`): `leaves_pinnate|leaves_bipinnate`. Be aware that polymorphisms are only fully supported for the TNT output, they will be encoded as missing data in the rest of output datasets.
+Other kinds of data (e.g. a morphological matrix or multiple ortholog encoding tables) can also be concatenated. The first row of each table should contain the character names, and the first column the names of the terminals. These matrices should be saved as tab-separated values: simple text tables with tabs as column separators and `tsv` extension. These tables should be located in a single directory, which is parsed with the option `-r`. Polymorphisms should be separated by pipes (`|`): `leaves_pinnate|leaves_bipinnate`. Be aware that polymorphisms are only fully supported for the TNT output, they will be encoded as missing data in the rest of output datasets.
 
 ### Sample input/output
 
