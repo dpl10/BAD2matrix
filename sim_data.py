@@ -62,12 +62,6 @@ def clean(dir_name, matrix_rootname):
 		shutil.rmtree('tnt_datasets')
 
 
-	#for d,s,f in os.walk('.'):
-	#	for filito in f:
-	#		if filito.startswith(matrix_rootname):
-	#			os.remove(filito)
-
-
 def verify_gene_content(matrix_rootname):
 	out = True
 	encoded = {}
