@@ -49,17 +49,30 @@ def clean(dir_name, matrix_rootname):
 	if os.path.exists(dir_name):
 		shutil.rmtree(dir_name)
 
-	for d,s,f in os.walk('.'):
-		for filito in f:
-			if filito.startswith(matrix_rootname):
-				os.remove(filito)
+	if os.path.exists('fasttree_datasets'):
+		shutil.rmtree('fasttree_datasets')
+
+	if os.path.exists('iqtree_datasets'):
+		shutil.rmtree('iqtree_datasets')
+
+	if os.path.exists('raxml_datasets'):
+		shutil.rmtree('raxml_datasets')
+
+	if os.path.exists('tnt_datasets'):
+		shutil.rmtree('tnt_datasets')
+
+
+	#for d,s,f in os.walk('.'):
+	#	for filito in f:
+	#		if filito.startswith(matrix_rootname):
+	#			os.remove(filito)
 
 
 def verify_gene_content(matrix_rootname):
 	out = True
 	encoded = {}
 
-	with open(f'{matrix_rootname}_gene_content.phy', 'r') as fh:
+	with open(f'iqtree_datasets/{matrix_rootname}_gene_content.phy', 'r') as fh:
 	
 		for line in fh:
 			line = line.strip()
