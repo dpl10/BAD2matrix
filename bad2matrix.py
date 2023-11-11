@@ -385,7 +385,7 @@ def min_steps_char(count_dict, char_type):
 		ambs = {x for x in ambs if not x in to_rm}
 
 		# Check if two ambiguities have common aa/nucleotide
-		# ===>> What if there is only one amb left? <<==
+		#? What if there is only one amb left?
 		l0 = 0
 		l1 = 1
 		while len(ambs) > 1 and l0 != l1:
@@ -822,7 +822,34 @@ class Partition:
 			acc += sub_size
 
 		return None
+
+
+def get_informative_stats(part_sizes, part_types, part_info_chars, data_matrix):
+	acc = 0
+
+	for sub_idx, sub_size in enumerate(part_sizes):
+		for idx in range(acc, (acc + sub_size)):
+			states = {}
+			
+			for term in data_matrix:
+				pos = data_matrix[term][idx]
+				if not pos in ['-', '?']:
+					if pos in states:
+						states[pos] += 1
+					else:
+						states[pos] = 1
+
+			if len(states) > 1:
+				min_steps = min_steps_char(states, part_types[sub_idx])
+				max_steps = max_steps_char(states, part_types[sub_idx])
+				
+				if max_steps > min_steps:
+					part_info_chars[sub_idx].append(idx-acc)
 		
+		acc += sub_size
+
+	return None
+
 
 class Term_data:
 	"""Simple class for aggregated DNA/AA data of a terminal"""
@@ -865,7 +892,7 @@ class Term_data:
 	
 
 	def parse_tnt_block(self, outfile: str, name_space: int = 20, polymorphs: Polymorphs = None):
-
+		#print(self.name)
 		with open(outfile, 'a') as outhandle:
 			pad = name_space - len(self.name)
 			outhandle.write(self.name + " " * pad)
@@ -879,9 +906,15 @@ class Term_data:
 					for ipart, isize in enumerate(self.metadata["size"]):
 
 						if self.metadata["presence"][ipart]: 
+							#print(self.metadata["informative_chars"][ipart])
 							init = end
 							end = init + isize
 							tmp = data[init:end]
+							#print(f'{len(tmp)=}')
+							tmp = [x for i,x in enumerate(list(tmp)) if i in 
+			  					self.metadata["informative_chars"][ipart]]
+							tmp = ''.join(tmp)
+							#print(f'{len(tmp)=}')
 							transdict = None
 
 							if self.metadata['type'][ipart] == 'nucleic':
@@ -902,7 +935,8 @@ class Term_data:
 							outhandle.write(tmp)
 
 						else:
-							outhandle.write("?" * self.metadata["size"][ipart])
+							#outhandle.write("?" * self.metadata["size"][ipart])
+							outhandle.write("?" * len(self.metadata["informative_chars"][ipart]))
 
 			outhandle.write('\n')
 
@@ -1086,7 +1120,7 @@ if __name__ == '__main__':
 		spp_data = {name: Term_data(name, code_gene_content) for name in term_names}
 		non_informative_partitions = []
 		final_spp_count = 0
-		part_collection = {'size': [], 'type': [], 'states': []}
+		part_collection = {'size': [], 'type': [], 'states': [], 'informative_chars': []}
 		polys = Polymorphs()
 
 		for file in act_files:
@@ -1107,9 +1141,11 @@ if __name__ == '__main__':
 				# Parse all data to each species file		
 				for name in spp_data:
 					spp_data[name].feed(partition)
+
 				part_collection['size'] += partition.metadata['size']
 				part_collection['type'] += partition.metadata['type']
 				part_collection['states'] += partition.metadata['states']
+				part_collection['informative_chars'] += partition.metadata['informative_chars']
 
 
 		# remove uninformative files and spp 
@@ -1158,7 +1194,6 @@ if __name__ == '__main__':
 				
 				spp_data[sp].metadata['type'].append('gene_content')
 				spp_data[sp].metadata['size'].append(gene_number)			
-				#TODO count informative characters in gene content
 				spp_data[sp].metadata["informative_chars"].append(inf_chars) # Dummy value
 				spp_data[sp].metadata["presence"].append(True)
 
@@ -1170,11 +1205,12 @@ if __name__ == '__main__':
 			part_collection['size'].append(gene_number)
 			part_collection['type'].append('gene_content')
 			part_collection['states'].append(2)
-
-		#print(f'{part_collection=}')
+			part_collection['informative_chars'].append(inf_chars)
 
 		#for spe in spp_data:
 		#	print(f'{spp_data[spe].metadata=}')
+
+		#print(f'{part_collection=}')
 
 		if not os.path.exists('iqtree_datasets'):
 			os.mkdir('iqtree_datasets')
@@ -1287,7 +1323,9 @@ if __name__ == '__main__':
 		if not os.path.exists('tnt_datasets'):
 			os.mkdir('tnt_datasets')
 
-		tnt_header = f"'xread file processed with BAD2matrix.'\n{tot_size} {len(spp_data)}\n"
+		tot_size = sum([len(k) for k in part_collection['informative_chars']])
+
+		tnt_header = f"xread\n'File processed with BAD2matrix.'\n{tot_size} {len(spp_data)}\n"
 		
 		with open(tnt_main, 'w') as tnt_handle:
 			tnt_handle.write(tnt_header)
