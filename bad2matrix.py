@@ -5,6 +5,7 @@ import warnings
 from functools import reduce
 from itertools import combinations
 from typing import List, Dict
+from datetime import datetime
 
 documentation = {
 
@@ -509,7 +510,7 @@ class Partition:
 			"size": [], # Char length
 			"type": [], # Char types: `nucleic`, `peptidic`, `indel`, `morphological`, `gene_content`
 			"informative_chars": [], # Number of Informative positions
-			#"origin": [filename], 
+			"origin": [filename], 
 			"character_names": [],
 			"states" : []
 			}
@@ -769,7 +770,7 @@ class Partition:
 		self.metadata["type"].append("indel")	
 		self.metadata["informative_chars"].append([])
 		self.metadata['states'].append(None)
-		#self.metadata["origin"].append( f'{self.metadata["origin"][0]}_indels' )
+		self.metadata["origin"].append(self.origin)
 
 
 	def seq_type(self, sequence):
@@ -1042,7 +1043,7 @@ if __name__ == '__main__':
 	keep_percentile = 1
 	tsv_file = None
 	raxml_bffr = ""
-
+	log_bffr = "\n\nBAD2matrix execution log\n\n"
 	debbug = False
 
 	# parse command line arguments
@@ -1108,6 +1109,12 @@ if __name__ == '__main__':
 
 		#TODO Check if output files already exist
 
+		ya = datetime.now()
+		ya = ya.strftime('%B %d, %Y - %H:%M:%S')
+		log_bffr += f'{ya}\n\nCommand arguments: '
+		log_bffr += ' '.join(sys.argv) + '\n\n'
+
+
 		translation_dict = aa_redux_dict(aa_encoding)
 		fasttree_main = os.path.join('fasttree_datasets', f'{root_name}.fasta')
 		raxml_main = os.path.join('raxml_datasets', f'{root_name}.phy')
@@ -1120,7 +1127,7 @@ if __name__ == '__main__':
 		spp_data = {name: Term_data(name, code_gene_content) for name in term_names}
 		non_informative_partitions = []
 		final_spp_count = 0
-		part_collection = {'size': [], 'type': [], 'states': [], 'informative_chars': []}
+		part_collection = {'size': [], 'type': [], 'states': [], 'informative_chars': [], 'file': []}
 		polys = Polymorphs()
 
 		for file in act_files:
@@ -1146,6 +1153,7 @@ if __name__ == '__main__':
 				part_collection['type'] += partition.metadata['type']
 				part_collection['states'] += partition.metadata['states']
 				part_collection['informative_chars'] += partition.metadata['informative_chars']
+				part_collection['file'] += partition.metadata['origin']
 
 
 		# remove uninformative files and spp 
@@ -1340,6 +1348,15 @@ if __name__ == '__main__':
 		# Remove temporary files
 		for name in spp_data:
 			spp_data[name].clean()
+
+
+		# Body of log file
+		log_bffr += 'Partitions processed:\n\n'
+
+		for idx , filename in enumerate(part_collection['file']):
+			log_bffr += f'{idx+1}: {filename}, {part_collection["type"][idx]} ({part_collection["size"][idx]} chars).\n'		
+
+		print(log_bffr)
 
 	else:
 		help_text = get_cli_help()
