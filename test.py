@@ -1,5 +1,5 @@
 import os
-from bad2matrix import get_name_map, clean_name, Partition, Term_data
+from bad2matrix import get_name_map, clean_name, Partition, Term_data, min_steps_char, max_steps_char
 
 infiles = ['alg_test_0.fasta', 'alg_test_1.fasta', 'alg_test_2.fasta']
 
@@ -41,7 +41,7 @@ def test_dummy_files():
 	assert os.path.exists(infiles[1]) == True
 
 def test_name_map():
-	mn, tc = utils.get_name_map(infiles, True)
+	mn, tc = get_name_map(infiles, True)
 	assert mn == {
 		'>sp0#sample0': 'sp0_sample0',
 		'>sp1#sample0': 'sp1_sample0',
@@ -89,7 +89,7 @@ def test_clean_name():
 	assert clean_name("sample.valid..name_0") == "sample.valid..name_0"
 
 
-name_map, term_count = utils.get_name_map(infiles, False)
+name_map, term_count = get_name_map(infiles, False)
 
 def test_partition_instant():
 	part0 = Partition(infiles[0], name_map)
@@ -129,19 +129,19 @@ def test_partition_indel():
 
 def test_min_steps_char():
 
-	assert utils.min_steps_char({"A": 1, "T": 2}, "nucleic") == 1
-	assert utils.min_steps_char({"A": 1, "R": 2}, "nucleic") == 0
-	assert utils.min_steps_char({"G": 1, "H": 2}, "nucleic") == 1
-	assert utils.min_steps_char({"A": 1, "H": 2}, "nucleic") == 0
+	assert min_steps_char({"A": 1, "T": 2}, "nucleic") == 1
+	assert min_steps_char({"A": 1, "R": 2}, "nucleic") == 0
+	assert min_steps_char({"G": 1, "H": 2}, "nucleic") == 1
+	assert min_steps_char({"A": 1, "H": 2}, "nucleic") == 0
 
 
 def test_max_steps_char():
-	assert utils.max_steps_char({'A': 3, 'T': 4, 'G':50}, "nucleic") == 7
-	assert utils.max_steps_char({'A': 3, 'T': 44, 'G':50}, "nucleic") == 47
-	assert utils.max_steps_char({'A': 3, 'T': 44, 'R':50}, "nucleic") == 53
-	assert utils.max_steps_char({'A': 3, 'T': 44, 'K':50}, "nucleic") == 3
-	assert utils.max_steps_char({'A': 53, 'T': 4, 'W':50}, "nucleic") == 4
-	assert utils.max_steps_char({'A': 3, 'T': 44, 'W':50}, "nucleic") == 3
+	assert max_steps_char({'A': 3, 'T': 4, 'G':50}, "nucleic") == 7
+	assert max_steps_char({'A': 3, 'T': 44, 'G':50}, "nucleic") == 47
+	assert max_steps_char({'A': 3, 'T': 44, 'R':50}, "nucleic") == 53
+	assert max_steps_char({'A': 3, 'T': 44, 'K':50}, "nucleic") == 3
+	assert max_steps_char({'A': 53, 'T': 4, 'W':50}, "nucleic") == 4
+	assert max_steps_char({'A': 3, 'T': 44, 'W':50}, "nucleic") == 3
 
 
 def test_informative_stats():
@@ -157,13 +157,13 @@ def test_informative_stats():
 
 def test_term_data():
 
-	sp0dat = utils.Term_data('sp0')
+	sp0dat = Term_data('sp0')
 	sp0dat.feed(part0)
 	sp0dat.feed(part1)
-	sp3dat = utils.Term_data('sp3')
+	sp3dat = Term_data('sp3')
 	sp3dat.feed(part0)
 	sp3dat.feed(part1)
-	sp4dat = utils.Term_data('sp4')
+	sp4dat = Term_data('sp4')
 	sp4dat.feed(part0)
 	sp4dat.feed(part1)
 
