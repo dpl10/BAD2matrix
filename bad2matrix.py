@@ -1356,7 +1356,7 @@ if __name__ == '__main__':
 		log_bffr += 'Partitions processed:\n\n'
 
 		for idx , filename in enumerate(part_collection['file']):
-			log_bffr += f'{idx+1}: {filename}, {part_collection["type"][idx]} ({part_collection["size"][idx]} chars).\n'		
+			log_bffr += f'{idx+1}: {filename}, {part_collection["type"][idx]} ({part_collection["size"][idx]} character{"s" if part_collection["size"][idx] > 1 else ""}).\n'		
 
 		print(log_bffr)
 
