@@ -47,7 +47,7 @@ Python scripts used for development.
 
 `make_readme.py`: Updates README.md file from source documentation.
 
-`sim_data.py`: Generates fasta alignments, executes BAD2matrix contatenation , and verifies gene content encoding.
+`sim_data.py`: Generates fasta alignments, executes BAD2matrix contatenation, and verifies gene content encoding.
 
 `test.py`: Preliminary test functions.
 
