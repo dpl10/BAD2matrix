@@ -44,7 +44,7 @@ documentation = {
 
 	'Citation':  'Little, D. P. & N. R. Salinas. 2023. BAD2matrix: better phylogenomic matrix concatenation, indel coding, gene content coding, reduced amino acid alphabets, and occupancy filtering. Software distributed by the authors. DOI: 10.5281/zenodo.10028408.',
 
-	'Additional files': 'Python scripts used for development.\n\n`make_readme.py`: Updates README.md file from source documentation.\n\n`sim_data.py`: Generates fasta alignments, executes BAD2matrix contatenation , and verifies gene content encoding.\n\n`test.py`: Preliminary test functions.',
+	'Additional files': 'Python scripts used for development.\n\n`make_readme.py`: Updates README.md file from source documentation.\n\n`sim_data.py`: Generates fasta alignments, executes BAD2matrix contatenation, and verifies gene content encoding.\n\n`test.py`: Preliminary test functions.',
 
 	'License': '[GPL2](https://github.com/dpl10/BAD2matrix/blob/master/LICENSE)',
 
